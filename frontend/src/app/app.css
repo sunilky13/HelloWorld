@@ -1,0 +1,17 @@
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: sans-serif;
+}
+
+h1 {
+  font-size: 3rem;
+  color: #333;
+}
+
+.error {
+  color: #c00;
+}

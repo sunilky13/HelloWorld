@@ -1,0 +1,14 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+
+# Angular
+frontend/node_modules/
+frontend/dist/
+
+# Azure deploy artifacts
+publish/
+
+# macOS
+.DS_Store
