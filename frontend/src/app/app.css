@@ -110,7 +110,7 @@ main {
 .card:hover { background: rgba(255,255,255,0.22); transform: translateY(-4px); }
 .card-icon { font-size: 3rem; }
 .card h3 { font-size: 1.3rem; }
-.card p { font-size: 0.87rem; opacity: 0.85; line-height: 1.5; text-align: center; }
+.card p { font-size: 0.87rem; opacity: 0.85; line-height: 1.5; text-align: center; flex: 1; }
 
 .card-btn {
   margin-top: 0.5rem;
