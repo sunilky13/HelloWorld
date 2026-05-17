@@ -198,10 +198,10 @@ export class EverestClimbComponent implements AfterViewInit, OnDestroy {
     this.drainTimer += dt;
     if (this.drainTimer >= 1) {
       this.drainTimer -= 1;
-      this.water  = Math.max(0, this.water  - 1.5);
-      const oxyDrain = this.pwy < 3000 ? 2.8 : 1.0;
+      this.water  = Math.max(0, this.water  - 0.35);
+      const oxyDrain = this.pwy < 3000 ? 0.7 : 0.18;
       this.oxygen = Math.max(0, this.oxygen - oxyDrain);
-      this.health = Math.max(0, this.health - 0.5);
+      this.health = Math.max(0, this.health - 0.08);
       if (this.water  <= 0) { this.die('Dehydrated — bring more water next time'); return; }
       if (this.oxygen <= 0) { this.die('Ran out of oxygen at high altitude');        return; }
       if (this.health <= 0) { this.die('Exhaustion claimed the climber');             return; }
