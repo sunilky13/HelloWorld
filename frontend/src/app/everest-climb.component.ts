@@ -196,8 +196,8 @@ export class EverestClimbComponent implements AfterViewInit, OnDestroy {
 
     // Resource drain
     this.drainTimer += dt;
-    if (this.drainTimer >= 4) {
-      this.drainTimer -= 4;
+    if (this.drainTimer >= 10) {
+      this.drainTimer -= 10;
       this.water  = Math.max(0, this.water  - 0.35);
       const oxyDrain = this.pwy < 3000 ? 0.7 : 0.18;
       this.oxygen = Math.max(0, this.oxygen - oxyDrain);
