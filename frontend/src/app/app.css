@@ -8,7 +8,9 @@ main {
   min-height: 100vh;
   padding: 2rem 1rem;
   font-family: sans-serif;
-  background: url('/images/zurich.jpg') center center / cover no-repeat fixed;
+  background:
+    linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)),
+    url('/images/zurich.jpg') center center / cover no-repeat fixed;
   outline: none;
 }
 
