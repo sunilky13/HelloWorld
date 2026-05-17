@@ -10,6 +10,7 @@
       <button class="nav-btn" [class.active]="activeMenu() === 'cityjumper'" (click)="activeMenu.set('cityjumper')">🏙️ City Jumper</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'everest'"   (click)="activeMenu.set('everest')">🏔️ Everest</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'bikeride'"  (click)="activeMenu.set('bikeride')">🚴 Bike Ride</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'chess'"     (click)="activeMenu.set('chess')">♟️ Chess</button>
     </div>
   </nav>
 
@@ -50,6 +51,12 @@
             <h3>1000 Mile Bike Ride</h3>
             <p>Cycle through forests, towns, cities &amp; mountains. Gain ⚡ electric boost going downhill!</p>
             <button class="card-btn">Play Bike Ride</button>
+          </div>
+          <div class="card" (click)="activeMenu.set('chess')">
+            <div class="card-icon">♟️</div>
+            <h3>Chess</h3>
+            <p>Classic chess with full rules — castling, en passant &amp; promotion. Play locally or challenge the AI!</p>
+            <button class="card-btn">Play Chess</button>
           </div>
         </div>
       </div>
@@ -127,6 +134,12 @@
     @if (activeMenu() === 'bikeride') {
       <div class="bikeride-page">
         <app-bike-ride></app-bike-ride>
+      </div>
+    }
+
+    @if (activeMenu() === 'chess') {
+      <div class="chess-page">
+        <app-chess-game></app-chess-game>
       </div>
     }
 

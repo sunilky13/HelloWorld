@@ -247,7 +247,8 @@ main {
 /* ── Game pages ── */
 .city-jumper-page,
 .everest-page,
-.bikeride-page {
+.bikeride-page,
+.chess-page {
   display: flex;
   justify-content: center;
   width: 100%;

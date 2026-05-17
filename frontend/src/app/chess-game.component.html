@@ -1,0 +1,60 @@
+<div class="chess-wrap">
+
+  <div class="game-header">
+    <h2 class="game-title">♟️ Chess</h2>
+    <div class="controls">
+      <button class="ctrl-btn" (click)="newGame()">New Game</button>
+      <button class="ctrl-btn" [class.active]="vsAI()" (click)="toggleAI()">
+        {{ vsAI() ? '🤖 vs AI' : '👥 2 Players' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Black's captured pieces (pieces black has taken from white) -->
+  <div class="captured-row">
+    <span class="cap-label">⬛ took:</span>
+    <span class="cap-pieces">{{ capByBlack }}</span>
+  </div>
+
+  <!-- Board -->
+  <div class="board-shell">
+    <div class="board">
+      @for (row of rows; track row) {
+        @for (col of cols; track col) {
+          <div class="sq"
+               [class.light]="isLight(row,col)"
+               [class.dark]="!isLight(row,col)"
+               [class.sel]="isSel(row,col)"
+               [class.vm]="isVM(row,col)"
+               [class.cap-sq]="isCap(row,col)"
+               [class.lm]="isLM(row,col)"
+               [class.kcheck]="isKC(row,col)"
+               (click)="click(row,col)">
+
+            <span class="piece" [class.wp]="pieceColor(row,col)==='w'" [class.bp]="pieceColor(row,col)==='b'">
+              {{ sym(row,col) }}
+            </span>
+
+            @if (col === 0) { <span class="rl">{{ 8 - row }}</span> }
+            @if (row === 7) { <span class="fl">{{ files[col] }}</span> }
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- White's captured pieces -->
+  <div class="captured-row">
+    <span class="cap-label">⬜ took:</span>
+    <span class="cap-pieces">{{ capByWhite }}</span>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar"
+       [class.in-check]="status()==='check'"
+       [class.game-over]="status()==='checkmate'||status()==='stalemate'"
+       [class.thinking]="thinking()">
+    {{ statusMsg }}
+  </div>
+
+</div>
