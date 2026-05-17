@@ -1,46 +1,10 @@
 @description('Base name for all resources')
 param appName string = 'helloworld'
 
-@description('Azure region')
-param location string = resourceGroup().location
+@description('Azure region for Static Web App')
+param location string = 'eastus2'
 
-@description('Origin of the Static Web App (filled after first deploy)')
-param staticWebAppUrl string = ''
-
-// App Service Plan (Linux, Free tier for dev / change to B1+ for prod)
-resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
-  name: '${appName}-plan'
-  location: location
-  sku: {
-    name: 'B1'
-    tier: 'Basic'
-  }
-  kind: 'linux'
-  properties: {
-    reserved: true
-  }
-}
-
-// App Service — .NET backend
-resource appService 'Microsoft.Web/sites@2023-01-01' = {
-  name: '${appName}-api'
-  location: location
-  properties: {
-    serverFarmId: appServicePlan.id
-    siteConfig: {
-      linuxFxVersion: 'DOTNETCORE|10.0'
-      appSettings: [
-        {
-          name: 'AllowedOrigins__0'
-          value: staticWebAppUrl
-        }
-      ]
-    }
-    httpsOnly: true
-  }
-}
-
-// Static Web App — Angular frontend
+// Static Web App — hosts Angular frontend + managed Functions API
 resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
   name: '${appName}-web'
   location: location
@@ -51,6 +15,4 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
   properties: {}
 }
 
-output apiUrl string = 'https://${appService.properties.defaultHostName}'
 output staticWebAppUrl string = 'https://${staticWebApp.properties.defaultHostname}'
-output staticWebAppApiKey string = staticWebApp.listSecrets().properties.apiKey

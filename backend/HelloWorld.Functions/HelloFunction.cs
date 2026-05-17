@@ -1,0 +1,15 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Worker;
+
+namespace HelloWorld.Functions;
+
+public class HelloFunction
+{
+    [Function("Hello")]
+    public IActionResult Run(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "hello")] HttpRequest req)
+    {
+        return new OkObjectResult(new { message = "Hello, World!" });
+    }
+}

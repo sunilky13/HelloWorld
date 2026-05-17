@@ -1,11 +1,8 @@
-name: Deploy Frontend to Azure Static Web Apps
+name: Deploy to Azure Static Web Apps
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend.yml'
 
 jobs:
   build-and-deploy:
@@ -21,7 +18,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install & Build
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Build Angular
         working-directory: frontend
         run: |
           npm ci
@@ -35,3 +37,4 @@ jobs:
           action: upload
           app_location: /frontend
           output_location: dist/frontend/browser
+          api_location: /backend/HelloWorld.Functions
