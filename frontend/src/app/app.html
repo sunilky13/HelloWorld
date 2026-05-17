@@ -1,47 +1,86 @@
-<main (keydown)="onKeyDown($event)" tabindex="0">
-  <h1>🇨🇭 {{ message() }}</h1>
-  @if (error()) { <p class="error">{{ error() }}</p> }
+<div class="site">
 
-  <div class="sudoku-panel">
-    @if (solved()) {
-      <div class="solved-banner">🎉 Puzzle solved! Well done!</div>
+  <!-- ── Nav bar ── -->
+  <nav class="navbar">
+    <span class="nav-brand">🇨🇭 {{ message() }}</span>
+    <div class="nav-links">
+      <button class="nav-btn" [class.active]="activeMenu() === 'home'"     (click)="activeMenu.set('home')">🏠 Home</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'sudoku'"   (click)="activeMenu.set('sudoku')">🔢 Sudoku</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'stickman'" (click)="activeMenu.set('stickman')">🎮 Stickman</button>
+    </div>
+  </nav>
+
+  <!-- ── Page content ── -->
+  <main>
+
+    @if (activeMenu() === 'home') {
+      <div class="home-page">
+        <h1>Welcome to skypy.net</h1>
+        <p class="tagline">Pick a game from the menu above and have fun!</p>
+        <div class="game-cards">
+          <div class="card" (click)="activeMenu.set('sudoku')">
+            <div class="card-icon">🔢</div>
+            <h3>Sudoku</h3>
+            <p>Classic 9×9 number puzzle. Fill the grid — every row, column and box must contain 1–9.</p>
+            <button class="card-btn">Play Sudoku</button>
+          </div>
+          <div class="card" (click)="activeMenu.set('stickman')">
+            <div class="card-icon">🎮</div>
+            <h3>Stickman Adventure</h3>
+            <p>Stomp zombie stick-men and defeat the Giant Squirrel Boss in this side-scrolling platformer.</p>
+            <button class="card-btn">Play Stickman</button>
+          </div>
+        </div>
+      </div>
     }
 
-    <div class="game-area">
-      <div class="board">
-        @for (r of indices; track r) {
-          <div class="row">
-            @for (c of indices; track c) {
-              <div class="cell"
-                [class.given]="isGiven(r, c)"
-                [class.selected]="isSelected(r, c)"
-                [class.highlighted]="isHighlighted(r, c)"
-                [class.error]="isError(r, c)"
-                [class.thick-right]="c === 2 || c === 5"
-                [class.thick-bottom]="r === 2 || r === 5"
-                (click)="selectCell(r, c)">
-                {{ cellDisplay(r, c) }}
-              </div>
-            }
-          </div>
-        }
-      </div>
-
-      <div class="side-controls">
-        <div class="numpad">
-          @for (n of numpad; track n) {
-            <button class="num-btn" (click)="numpadInput(n)">{{ n }}</button>
+    @if (activeMenu() === 'sudoku') {
+      <div class="sudoku-page" (keydown)="onKeyDown($event)" tabindex="0">
+        <div class="sudoku-panel">
+          @if (solved()) {
+            <div class="solved-banner">🎉 Puzzle solved! Well done!</div>
           }
-          <button class="num-btn erase-btn" (click)="erase()">⌫</button>
-        </div>
-
-        <div class="actions">
-          <button class="action-btn" (click)="check()">Check</button>
-          <button class="action-btn new-btn" (click)="newGame()">New Game</button>
+          <div class="game-area">
+            <div class="board">
+              @for (r of indices; track r) {
+                <div class="row">
+                  @for (c of indices; track c) {
+                    <div class="cell"
+                      [class.given]="isGiven(r, c)"
+                      [class.selected]="isSelected(r, c)"
+                      [class.highlighted]="isHighlighted(r, c)"
+                      [class.error]="isError(r, c)"
+                      [class.thick-right]="c === 2 || c === 5"
+                      [class.thick-bottom]="r === 2 || r === 5"
+                      (click)="selectCell(r, c)">
+                      {{ cellDisplay(r, c) }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="side-controls">
+              <div class="numpad">
+                @for (n of numpad; track n) {
+                  <button class="num-btn" (click)="numpadInput(n)">{{ n }}</button>
+                }
+                <button class="num-btn erase-btn" (click)="erase()">⌫</button>
+              </div>
+              <div class="actions">
+                <button class="action-btn" (click)="check()">Check</button>
+                <button class="action-btn new-btn" (click)="newGame()">New Game</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
+    }
 
-  <app-stickman-game></app-stickman-game>
-</main>
+    @if (activeMenu() === 'stickman') {
+      <div class="stickman-page">
+        <app-stickman-game></app-stickman-game>
+      </div>
+    }
+
+  </main>
+</div>

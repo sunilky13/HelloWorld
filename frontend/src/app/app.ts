@@ -4,6 +4,8 @@ import { environment } from '../environments/environment';
 import { SudokuService, Board } from './sudoku.service';
 import { StickmanGameComponent } from './stickman-game.component';
 
+type Menu = 'home' | 'sudoku' | 'stickman';
+
 @Component({
   selector: 'app-root',
   imports: [StickmanGameComponent],
@@ -13,6 +15,7 @@ import { StickmanGameComponent } from './stickman-game.component';
 export class App implements OnInit {
   message = signal('Loading...');
   error = signal('');
+  activeMenu = signal<Menu>('home');
 
   puzzle = signal<Board>([]);
   solution = signal<Board>([]);
