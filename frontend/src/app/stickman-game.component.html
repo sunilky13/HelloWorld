@@ -1,0 +1,57 @@
+<div class="game-wrap">
+  <h2 class="game-title">🎮 Stickman vs the Zombie Horde</h2>
+
+  <div class="canvas-shell">
+    <canvas #canvas width="800" height="420"></canvas>
+
+    @if (gameState === 'start') {
+      <div class="overlay">
+        <h3>Stickman Adventure</h3>
+        <ul>
+          <li>⬅ ➡ &nbsp;/&nbsp; A D &nbsp; Move</li>
+          <li>⬆ / Space &nbsp; Jump (double-jump!)</li>
+          <li>🦵 Stomp zombies from above</li>
+          <li>👑 Reach &amp; defeat the Giant Squirrel Boss</li>
+        </ul>
+        <button class="play-btn" (click)="startGame()">▶ Play</button>
+      </div>
+    }
+
+    @if (gameState === 'dead') {
+      <div class="overlay dead">
+        <h3>💀 Game Over</h3>
+        <p class="final-score">Score: {{ score }}</p>
+        <button class="play-btn" (click)="startGame()">↩ Try Again</button>
+      </div>
+    }
+
+    @if (gameState === 'win') {
+      <div class="overlay win">
+        <h3>🏆 You Win!</h3>
+        <p>The Giant Squirrel has been defeated!</p>
+        <p class="final-score">Score: {{ score }}</p>
+        <button class="play-btn" (click)="startGame()">▶ Play Again</button>
+      </div>
+    }
+
+    <!-- On-screen touch controls (visible on mobile) -->
+    @if (gameState === 'playing') {
+      <div class="touch-controls">
+        <button class="t-btn"
+          (touchstart)="pressLeft(true); $event.preventDefault()"
+          (touchend)="pressLeft(false)"
+          (mousedown)="pressLeft(true)" (mouseup)="pressLeft(false)">◀</button>
+        <button class="t-btn jump"
+          (touchstart)="pressJump(); $event.preventDefault()"
+          (touchend)="releaseJump()"
+          (mousedown)="pressJump()" (mouseup)="releaseJump()">▲</button>
+        <button class="t-btn"
+          (touchstart)="pressRight(true); $event.preventDefault()"
+          (touchend)="pressRight(false)"
+          (mousedown)="pressRight(true)" (mouseup)="pressRight(false)">▶</button>
+      </div>
+    }
+  </div>
+
+  <p class="hint">⬅ ➡ Move &nbsp;|&nbsp; ⬆ / Space Jump (double!) &nbsp;|&nbsp; Stomp zombies &nbsp;|&nbsp; Beat the boss 🐿️</p>
+</div>

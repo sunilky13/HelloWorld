@@ -2,10 +2,11 @@ import { Component, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
 import { SudokuService, Board } from './sudoku.service';
+import { StickmanGameComponent } from './stickman-game.component';
 
 @Component({
   selector: 'app-root',
-  imports: [],
+  imports: [StickmanGameComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
