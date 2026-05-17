@@ -1,24 +1,128 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 1.5rem;
   min-height: 100vh;
+  padding: 2rem 1rem;
   font-family: sans-serif;
   background: url('/images/zurich.jpg') center center / cover no-repeat fixed;
+  outline: none;
 }
 
 h1 {
-  font-size: 3.5rem;
+  font-size: 2.5rem;
   color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
-  background: rgba(0, 0, 0, 0.35);
-  padding: 0.5rem 1.5rem;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.35);
+  padding: 0.4rem 1.4rem;
   border-radius: 8px;
   backdrop-filter: blur(4px);
 }
 
-.error {
-  color: #fdd;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+.error { color: #fdd; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+
+/* ── Glass panel ── */
+.sudoku-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* ── Solved banner ── */
+.solved-banner {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(34,197,94,0.8);
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* ── Board ── */
+.board {
+  border: 3px solid rgba(255,255,255,0.9);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.row { display: flex; }
+
+.cell {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.cell.thick-right  { border-right:  3px solid rgba(255,255,255,0.9); }
+.cell.thick-bottom { border-bottom: 3px solid rgba(255,255,255,0.9); }
+
+.cell.given       { font-weight: 700; color: #fff; }
+.cell.highlighted { background: rgba(255,255,255,0.25); }
+.cell.selected    { background: rgba(99,179,237,0.6); color: #fff; }
+.cell.error       { color: #fc8181; font-weight: 700; }
+
+/* ── Number pad ── */
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+}
+
+.num-btn {
+  width: 44px;
+  height: 44px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  transition: background 0.15s;
+}
+.num-btn:hover { background: rgba(255,255,255,0.45); }
+.erase-btn    { background: rgba(252,129,129,0.4); }
+.erase-btn:hover { background: rgba(252,129,129,0.65); }
+
+/* ── Action buttons ── */
+.actions { display: flex; gap: 0.75rem; }
+
+.action-btn {
+  padding: 0.5rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  transition: background 0.15s;
+}
+.action-btn:hover { background: rgba(255,255,255,0.45); }
+.new-btn { background: rgba(99,179,237,0.45); }
+.new-btn:hover { background: rgba(99,179,237,0.7); }
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .cell, .num-btn { width: 36px; height: 36px; font-size: 1rem; }
 }
