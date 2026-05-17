@@ -44,6 +44,15 @@
     @if (activeMenu() === 'sudoku') {
       <div class="sudoku-page" (keydown)="onKeyDown($event)" tabindex="0">
         <div class="sudoku-panel">
+          <div class="sudoku-header">
+            <div class="difficulty-btns">
+              <button class="diff-btn" [class.active]="difficulty() === 'easy'"   (click)="setDifficulty('easy')">Easy</button>
+              <button class="diff-btn" [class.active]="difficulty() === 'medium'" (click)="setDifficulty('medium')">Medium</button>
+              <button class="diff-btn" [class.active]="difficulty() === 'hard'"   (click)="setDifficulty('hard')">Hard</button>
+              <button class="diff-btn" [class.active]="difficulty() === 'expert'" (click)="setDifficulty('expert')">Expert</button>
+            </div>
+            <div class="timer">⏱ {{ timerDisplay }}</div>
+          </div>
           @if (solved()) {
             <div class="solved-banner">🎉 Puzzle solved! Well done!</div>
           }

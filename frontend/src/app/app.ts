@@ -1,10 +1,11 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
 import { SudokuService, Board } from './sudoku.service';
 import { StickmanGameComponent } from './stickman-game.component';
 import { CityJumperComponent } from './city-jumper.component';
 
+type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
 type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper';
 
 @Component({
@@ -13,7 +14,7 @@ type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
   message = signal('Loading...');
   error = signal('');
   activeMenu = signal<Menu>('home');
@@ -24,6 +25,19 @@ export class App implements OnInit {
   selected = signal<[number, number] | null>(null);
   solved = signal(false);
   showErrors = signal(false);
+  difficulty = signal<Difficulty>('medium');
+  timerSec   = signal(0);
+
+  private timerInterval: ReturnType<typeof setInterval> | null = null;
+
+  readonly difficultyClues: Record<Difficulty, number> = {
+    easy: 46, medium: 35, hard: 26, expert: 20
+  };
+
+  get timerDisplay(): string {
+    const s = this.timerSec();
+    return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  }
 
   readonly indices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
   readonly numpad = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -38,14 +52,29 @@ export class App implements OnInit {
     this.newGame();
   }
 
+  ngOnDestroy(): void { this.stopTimer(); }
+
+  setDifficulty(d: Difficulty): void { this.difficulty.set(d); this.newGame(); }
+
   newGame(): void {
-    const { puzzle, solution } = this.sudoku.generatePuzzle();
+    this.stopTimer();
+    const { puzzle, solution } = this.sudoku.generatePuzzle(this.difficultyClues[this.difficulty()]);
     this.puzzle.set(puzzle);
     this.solution.set(solution);
     this.userBoard.set(puzzle.map(r => [...r]));
     this.selected.set(null);
     this.solved.set(false);
     this.showErrors.set(false);
+    this.startTimer();
+  }
+
+  private startTimer(): void {
+    this.timerSec.set(0);
+    this.timerInterval = setInterval(() => this.timerSec.update(s => s + 1), 1000);
+  }
+
+  private stopTimer(): void {
+    if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
   }
 
   selectCell(r: number, c: number): void {
@@ -113,7 +142,7 @@ export class App implements OnInit {
     board[r][c] = val;
     this.userBoard.set(board);
     this.showErrors.set(false);
-    if (this.sudoku.isSolved(board, this.solution())) this.solved.set(true);
+    if (this.sudoku.isSolved(board, this.solution())) { this.solved.set(true); this.stopTimer(); }
   }
 
   private move(r: number, c: number): void {
