@@ -81,10 +81,25 @@ h1 {
 .cell.selected    { background: rgba(99,179,237,0.6); color: #fff; }
 .cell.error       { color: #fc8181; font-weight: 700; }
 
+/* ── Board + side controls row ── */
+.game-area {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+
+.side-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: flex-start;
+}
+
 /* ── Number pad ── */
 .numpad {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.4rem;
 }
 
@@ -105,7 +120,7 @@ h1 {
 .erase-btn:hover { background: rgba(252,129,129,0.65); }
 
 /* ── Action buttons ── */
-.actions { display: flex; gap: 0.75rem; }
+.actions { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .action-btn {
   padding: 0.5rem 1.4rem;
@@ -122,7 +137,13 @@ h1 {
 .new-btn { background: rgba(99,179,237,0.45); }
 .new-btn:hover { background: rgba(99,179,237,0.7); }
 
+.action-btn { width: 100%; }
+
 /* ── Mobile ── */
-@media (max-width: 480px) {
+@media (max-width: 560px) {
+  .game-area { flex-direction: column; align-items: center; }
+  .actions { flex-direction: row; }
+  .action-btn { width: auto; }
+  .numpad { grid-template-columns: repeat(5, 1fr); }
   .cell, .num-btn { width: 36px; height: 36px; font-size: 1rem; }
 }

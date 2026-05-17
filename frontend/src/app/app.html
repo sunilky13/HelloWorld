@@ -7,35 +7,39 @@
       <div class="solved-banner">🎉 Puzzle solved! Well done!</div>
     }
 
-    <div class="board">
-      @for (r of indices; track r) {
-        <div class="row">
-          @for (c of indices; track c) {
-            <div class="cell"
-              [class.given]="isGiven(r, c)"
-              [class.selected]="isSelected(r, c)"
-              [class.highlighted]="isHighlighted(r, c)"
-              [class.error]="isError(r, c)"
-              [class.thick-right]="c === 2 || c === 5"
-              [class.thick-bottom]="r === 2 || r === 5"
-              (click)="selectCell(r, c)">
-              {{ cellDisplay(r, c) }}
-            </div>
+    <div class="game-area">
+      <div class="board">
+        @for (r of indices; track r) {
+          <div class="row">
+            @for (c of indices; track c) {
+              <div class="cell"
+                [class.given]="isGiven(r, c)"
+                [class.selected]="isSelected(r, c)"
+                [class.highlighted]="isHighlighted(r, c)"
+                [class.error]="isError(r, c)"
+                [class.thick-right]="c === 2 || c === 5"
+                [class.thick-bottom]="r === 2 || r === 5"
+                (click)="selectCell(r, c)">
+                {{ cellDisplay(r, c) }}
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="side-controls">
+        <div class="numpad">
+          @for (n of numpad; track n) {
+            <button class="num-btn" (click)="numpadInput(n)">{{ n }}</button>
           }
+          <button class="num-btn erase-btn" (click)="erase()">⌫</button>
         </div>
-      }
-    </div>
 
-    <div class="numpad">
-      @for (n of numpad; track n) {
-        <button class="num-btn" (click)="numpadInput(n)">{{ n }}</button>
-      }
-      <button class="num-btn erase-btn" (click)="erase()">⌫</button>
-    </div>
-
-    <div class="actions">
-      <button class="action-btn" (click)="check()">Check</button>
-      <button class="action-btn new-btn" (click)="newGame()">New Game</button>
+        <div class="actions">
+          <button class="action-btn" (click)="check()">Check</button>
+          <button class="action-btn new-btn" (click)="newGame()">New Game</button>
+        </div>
+      </div>
     </div>
   </div>
 </main>
