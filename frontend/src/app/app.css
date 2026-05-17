@@ -206,6 +206,13 @@ main {
   width: 100%;
 }
 
+/* ── City Jumper page ── */
+.city-jumper-page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 /* ── Mobile ── */
 @media (max-width: 600px) {
   .navbar { flex-direction: column; gap: 0.6rem; }

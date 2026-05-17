@@ -7,6 +7,7 @@
       <button class="nav-btn" [class.active]="activeMenu() === 'home'"     (click)="activeMenu.set('home')">🏠 Home</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'sudoku'"   (click)="activeMenu.set('sudoku')">🔢 Sudoku</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'stickman'" (click)="activeMenu.set('stickman')">🎮 Stickman</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'cityjumper'" (click)="activeMenu.set('cityjumper')">🏙️ City Jumper</button>
     </div>
   </nav>
 
@@ -29,6 +30,12 @@
             <h3>Stickman Adventure</h3>
             <p>Stomp zombie stick-men and defeat the Giant Squirrel Boss in this side-scrolling platformer.</p>
             <button class="card-btn">Play Stickman</button>
+          </div>
+          <div class="card" (click)="activeMenu.set('cityjumper')">
+            <div class="card-icon">🏙️</div>
+            <h3>City Jumper</h3>
+            <p>Run through Zürich's cobblestone streets! Dodge trams, bikes and swans. Collect Swiss francs.</p>
+            <button class="card-btn">Play City Jumper</button>
           </div>
         </div>
       </div>
@@ -79,6 +86,12 @@
     @if (activeMenu() === 'stickman') {
       <div class="stickman-page">
         <app-stickman-game></app-stickman-game>
+      </div>
+    }
+
+    @if (activeMenu() === 'cityjumper') {
+      <div class="city-jumper-page">
+        <app-city-jumper></app-city-jumper>
       </div>
     }
 

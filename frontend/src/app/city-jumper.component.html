@@ -1,0 +1,39 @@
+<div class="game-wrap">
+  <h2 class="game-title">🏙️ City Jumper — Zurich</h2>
+
+  <div class="canvas-shell">
+    <canvas #canvas width="800" height="420"></canvas>
+
+    @if (state === 'start') {
+      <div class="overlay">
+        <h3>🏙️ City Jumper</h3>
+        <ul>
+          <li>⬆ / Space / W — Jump (double-jump allowed)</li>
+          <li>Collect ₣ Swiss francs for bonus points</li>
+          <li>Dodge trams, bikes, swans &amp; bollards</li>
+          <li>Speed increases every 300 points</li>
+        </ul>
+        <button class="play-btn" (click)="startGame()">▶ Start Running</button>
+      </div>
+    }
+
+    @if (state === 'dead') {
+      <div class="overlay dead">
+        <h3>💀 Wiped out!</h3>
+        <p class="final-score">Score: {{ score }}</p>
+        <p>Best: {{ best }}</p>
+        <p>Coins: ₣ {{ coins }}</p>
+        <button class="play-btn" (click)="startGame()">▶ Try Again</button>
+      </div>
+    }
+
+    <!-- Touch controls -->
+    <div class="touch-controls">
+      <button class="t-btn jump"
+        (touchstart)="pressJump()"   (touchend)="releaseJump()"
+        (mousedown)="pressJump()"    (mouseup)="releaseJump()">⬆</button>
+    </div>
+  </div>
+
+  <p class="hint">Arrow Up / Space / W to jump &nbsp;|&nbsp; Double-jump supported</p>
+</div>

@@ -3,12 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
 import { SudokuService, Board } from './sudoku.service';
 import { StickmanGameComponent } from './stickman-game.component';
+import { CityJumperComponent } from './city-jumper.component';
 
-type Menu = 'home' | 'sudoku' | 'stickman';
+type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper';
 
 @Component({
   selector: 'app-root',
-  imports: [StickmanGameComponent],
+  imports: [StickmanGameComponent, CityJumperComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
