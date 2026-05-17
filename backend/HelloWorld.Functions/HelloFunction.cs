@@ -10,6 +10,7 @@ public class HelloFunction
     public IActionResult Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "hello")] HttpRequest req)
     {
+        req.HttpContext.Response.Headers.Append("Cache-Control", "no-store");
         return new OkObjectResult(new { message = "Hello, World!" });
     }
 }
