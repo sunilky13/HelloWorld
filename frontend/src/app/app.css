@@ -244,8 +244,10 @@ main {
   width: 100%;
 }
 
-/* ── City Jumper page ── */
-.city-jumper-page {
+/* ── Game pages ── */
+.city-jumper-page,
+.everest-page,
+.bikeride-page {
   display: flex;
   justify-content: center;
   width: 100%;

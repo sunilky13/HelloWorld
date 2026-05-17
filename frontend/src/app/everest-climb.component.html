@@ -1,0 +1,50 @@
+<div class="game-wrap">
+  <h2 class="game-title">🏔️ Climb Everest</h2>
+  <div class="canvas-shell">
+    <canvas #canvas width="800" height="500"></canvas>
+
+    @if (state === 'start') {
+      <div class="overlay">
+        <h3>🏔️ Climb Everest</h3>
+        <ul>
+          <li>Arrow keys / WASD — Move &amp; Jump</li>
+          <li>↑ / W near a ladder — Climb up &nbsp;|&nbsp; ↓ / S — Descend</li>
+          <li>↑ / W near a rock wall — Grab harness &amp; climb</li>
+          <li>Space on ladder/wall — Jump off</li>
+          <li>E near a campsite — Refill water, oxygen &amp; health</li>
+          <li>Reach the summit — Level 20!</li>
+        </ul>
+        <button class="play-btn" (click)="startGame()">▶ Start Climbing</button>
+      </div>
+    }
+
+    @if (state === 'dead') {
+      <div class="overlay dead">
+        <h3>❄️ Expedition Failed</h3>
+        <p>{{ deathReason }}</p>
+        <p class="final-score">Reached Level {{ lastLevel }} / 20</p>
+        <button class="play-btn" (click)="startGame()">▶ Try Again</button>
+      </div>
+    }
+
+    @if (state === 'win') {
+      <div class="overlay win">
+        <h3>🏆 Summit Reached!</h3>
+        <p>You conquered Mount Everest at 8,849m!</p>
+        <p class="final-score">All 20 Levels Complete</p>
+        <button class="play-btn" (click)="startGame()">▶ Climb Again</button>
+      </div>
+    }
+
+    <!-- Touch controls -->
+    <div class="touch-controls">
+      <button class="t-btn" (touchstart)="keys.add('ArrowLeft')"  (touchend)="keys.delete('ArrowLeft')">◀</button>
+      <button class="t-btn" (touchstart)="keys.add('ArrowDown')"  (touchend)="keys.delete('ArrowDown')">↓</button>
+      <button class="t-btn jump" (touchstart)="keys.add('Space')" (touchend)="keys.delete('Space')">⬆</button>
+      <button class="t-btn" (touchstart)="keys.add('ArrowUp')"    (touchend)="keys.delete('ArrowUp')">↑</button>
+      <button class="t-btn" (touchstart)="keys.add('ArrowRight')" (touchend)="keys.delete('ArrowRight')">▶</button>
+      <button class="t-btn action" (touchstart)="keys.add('KeyE')" (touchend)="keys.delete('KeyE')">E</button>
+    </div>
+  </div>
+  <p class="hint">Arrow keys / WASD — Move &amp; Jump &nbsp;|&nbsp; ↑ near ladder/wall — Climb &nbsp;|&nbsp; E near camp — Refill</p>
+</div>

@@ -1,0 +1,35 @@
+<div class="game-wrap">
+  <h2 class="game-title">🚴 1000 Mile Bike Ride</h2>
+  <div class="canvas-shell">
+    <canvas #canvas width="800" height="420"></canvas>
+
+    @if (state === 'start') {
+      <div class="overlay">
+        <h3>🚴 1000 Mile Challenge</h3>
+        <ul>
+          <li>Space / ↑ / W — Jump over obstacles</li>
+          <li>Go downhill for ⚡ electric speed boost</li>
+          <li>Ride through forests, towns, cities &amp; more</li>
+          <li>Reach 1000 miles to finish!</li>
+        </ul>
+        <button class="play-btn" (click)="startGame()">▶ Start Riding</button>
+      </div>
+    }
+
+    @if (state === 'finish') {
+      <div class="overlay win">
+        <h3>🏆 1000 Miles Complete!</h3>
+        <p>You cycled through 6 different regions!</p>
+        <p class="final-score">Challenge Complete!</p>
+        <button class="play-btn" (click)="startGame()">▶ Ride Again</button>
+      </div>
+    }
+
+    <div class="touch-controls">
+      <button class="t-btn jump"
+        (touchstart)="pressJump()" (touchend)="releaseJump()"
+        (mousedown)="pressJump()" (mouseup)="releaseJump()">⬆</button>
+    </div>
+  </div>
+  <p class="hint">Space / ↑ / W — Jump over obstacles &nbsp;|&nbsp; Speed up going downhill!</p>
+</div>

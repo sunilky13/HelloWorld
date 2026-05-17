@@ -4,13 +4,15 @@ import { environment } from '../environments/environment';
 import { SudokuService, Board } from './sudoku.service';
 import { StickmanGameComponent } from './stickman-game.component';
 import { CityJumperComponent } from './city-jumper.component';
+import { EverestClimbComponent } from './everest-climb.component';
+import { BikeRideComponent } from './bike-ride.component';
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
-type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper';
+type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper' | 'everest' | 'bikeride';
 
 @Component({
   selector: 'app-root',
-  imports: [StickmanGameComponent, CityJumperComponent],
+  imports: [StickmanGameComponent, CityJumperComponent, EverestClimbComponent, BikeRideComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
