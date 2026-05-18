@@ -17,10 +17,10 @@ const C = {
   hill:   '#00A800', hillL: '#00D800', hillO: '#6B8CFF',
   ground: '#C84B0C', groundT: '#56A000', groundD: '#8B2500',
   brick:  '#C84B0C', brickL: '#E86030', brickD: '#8B2500',
-  qBlock: '#FFA800', qBlockL: '#FFD070', qBlockD: '#A06000', qBlockQ: '#C07000',
+  qBlock: '#7B4FBE', qBlockL: '#A97DE0', qBlockD: '#4A2880', qBlockQ: '#9B6FDE',
   pipe:   '#00A800', pipeL: '#00D800', pipeD: '#005800',
-  mario:  '#E40058', marioS: '#FFAD00', marioO: '#6B2200',
-  goomba: '#A05000', goombaD: '#6B2200', goombaF: '#FFAD00',
+  mario:  '#2060D0', marioS: '#F8C060', marioO: '#1A3A70',
+  goomba: '#2E7D32', goombaD: '#1B5E20', goombaF: '#A5D6A7',
   coin:   '#FFD700', coinSh: '#FFA800',
   flag:   '#00A800', flagP:  '#C0C0C0',
   hud:    '#000',
@@ -31,11 +31,11 @@ const C = {
 interface Rect { x:number; y:number; w:number; h:number; }
 interface Entity extends Rect { vx:number; vy:number; onGround:boolean; }
 
-interface Mario extends Entity {
+interface Player extends Entity {
   facing: 1|-1; state:'idle'|'run'|'jump'|'dead';
   animT:number; lives:number; big:boolean; invincible:number;
 }
-interface Goomba extends Rect {
+interface Blob extends Rect {
   vx:number; vy:number; alive:boolean; squished:boolean; squishT:number; animT:number;
 }
 interface Coin extends Rect { taken:boolean; animT:number; }
@@ -50,9 +50,9 @@ interface Particle {
 interface FloatingText { x:number; y:number; text:string; alpha:number; vy:number; }
 
 // ── Level builder ─────────────────────────────────────────────────────────────
-function buildLevel(): { blocks:Block[]; goombas:Goomba[]; coins:Coin[]; flagX:number } {
+function buildLevel(): { blocks:Block[]; goombas:Blob[]; coins:Coin[]; flagX:number } {
   const blocks: Block[] = [];
-  const goombas: Goomba[] = [];
+  const goombas: Blob[] = [];
   const coins: Coin[] = [];
 
   const T = TILE;
@@ -78,27 +78,27 @@ function buildLevel(): { blocks:Block[]; goombas:Goomba[]; coins:Coin[]; flagX:n
     blocks.push({ x:(tx-0)*T-4, y:(GY-height)*T, w:T*2+8, h:T, type:'pipe-top', hit:false,hitT:0,used:false,hasCoin:false });
   };
 
-  const goomba = (tx:number) => goombas.push({ x:tx*T, y:(GY-1)*T, w:T, h:T, vx:-1.2, vy:0, alive:true, squished:false, squishT:0, animT:0 });
+  const blob = (tx:number) => goombas.push({ x:tx*T, y:(GY-1)*T, w:T, h:T, vx:-1.2, vy:0, alive:true, squished:false, squishT:0, animT:0 });
   const coin = (tx:number, ty:number) => coins.push({ x:tx*T+6, y:ty*T, w:T-12, h:T, taken:false, animT:0 });
 
   // ── Zone 1: Classic opener ────────────────────────────────────────────────
   qblock(5, 9); qblock(11, 9); brick(12, 9, true); qblock(13, 9); brick(14, 9); qblock(15, 9);
   brick(12, 6); brick(13, 6); brick(14, 6);
   pipe(17, 2); pipe(21, 3); pipe(28, 4);
-  goomba(9); goomba(18); goomba(24); goomba(26);
+  blob(9); blob(18); blob(24); blob(26);
   coin(6, 8); coin(7, 8); coin(8, 8);
 
   // ── Zone 2: Mid section ───────────────────────────────────────────────────
   brick(35, 9); qblock(36, 9, ); brick(37, 9); brick(38, 9, true);
   brick(35, 6); brick(36, 6); brick(37, 6); brick(38, 6);
   pipe(40, 3); pipe(45, 4); pipe(50, 2);
-  goomba(33); goomba(38); goomba(43); goomba(48);
+  blob(33); blob(38); blob(43); blob(48);
   coin(36, 8); coin(37, 8);
 
   // ── Gap zone: rows of bricks for bridging ─────────────────────────────────
   for (let i = 59; i <= 65; i++) { addGround(i); }
   brick(60, 10); brick(61, 10); qblock(62, 10); brick(63, 10);
-  goomba(61); goomba(64);
+  blob(61); blob(64);
   coin(62, 9);
 
   // ── Zone 3: Staircase + underground-feel ─────────────────────────────────
@@ -111,12 +111,12 @@ function buildLevel(): { blocks:Block[]; goombas:Goomba[]; coins:Coin[]; flagX:n
     for (let j = 0; j < 5-i; j++)
       blocks.push({ x:(84+i)*T, y:(GY-j)*T, w:T, h:T, type:'brick', hit:false,hitT:0,used:false,hasCoin:false });
   }
-  goomba(75); goomba(77); goomba(85); goomba(88);
+  blob(75); blob(77); blob(85); blob(88);
 
   // ── Zone 4: Late section ──────────────────────────────────────────────────
   qblock(92, 9); qblock(95, 9); brick(96, 9, true); qblock(98, 9);
   pipe(100, 2); pipe(104, 3);
-  goomba(93); goomba(101); goomba(105); goomba(108); goomba(110);
+  blob(93); blob(101); blob(105); blob(108); blob(110);
   coin(93, 8); coin(95, 8); coin(97, 8);
 
   // ── Approach to flag ──────────────────────────────────────────────────────
@@ -149,9 +149,9 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
   private keys = new Set<string>();
   private lastTs = 0;
 
-  private mario!: Mario;
+  private player!: Player;
   private blocks!: Block[];
-  private goombas!: Goomba[];
+  private blobs!: Blob[];
   private coins!: Coin[];
   private particles!: Particle[];
   private floatTexts!: FloatingText[];
@@ -183,7 +183,7 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
   startGame() {
     const { blocks, goombas, coins, flagX } = buildLevel();
     this.blocks    = blocks;
-    this.goombas   = goombas;
+    this.blobs     = goombas;
     this.coins     = coins;
     this.flagX     = flagX;
     this.particles = [];
@@ -196,7 +196,7 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
     this.coinCount = 0;
 
     const startY = 13 * TILE - 2 * TILE;
-    this.mario = {
+    this.player = {
       x: 2*TILE, y: startY, w: 26, h: 32,
       vx: 0, vy: 0, onGround: false,
       facing: 1, state: 'idle', animT: 0,
@@ -217,7 +217,7 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
 
   // ── Update ────────────────────────────────────────────────────────────────
   private update(dt: number) {
-    const m = this.mario;
+    const m = this.player;
     if (m.invincible > 0) m.invincible -= dt;
 
     // ── Input ─────────────────────────────────────────────────────────────
@@ -266,10 +266,10 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
     }
 
     // ── Fall into pit ─────────────────────────────────────────────────────
-    if (m.y > CH + 80 && m.state !== 'dead') this.killMario();
+    if (m.y > CH + 80 && m.state !== 'dead') this.killPlayer();
 
     // ── Goombas ───────────────────────────────────────────────────────────
-    for (const g of this.goombas) {
+    for (const g of this.blobs) {
       if (!g.alive) { g.squishT -= dt; continue; }
       g.animT += dt;
       g.x += g.vx * dt;
@@ -294,7 +294,7 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
           m.vy = JUMP_V * 0.5;
           this.addScore(100, g.x + g.w/2, g.y);
         } else {
-          this.killMario();
+          this.killPlayer();
         }
       }
     }
@@ -376,8 +376,8 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
     this.blocks = this.blocks.filter(bl => !(bl as any)._removed);
   }
 
-  private killMario() {
-    const m = this.mario;
+  private killPlayer() {
+    const m = this.player;
     if (m.state === 'dead') return;
     m.state = 'dead';
     m.vy = JUMP_V * 0.9;
@@ -421,8 +421,8 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
     this.drawBlocks(ctx, cx);
     this.drawFlag(ctx, cx);
     this.drawCoins(ctx, cx);
-    this.drawGoombas(ctx, cx);
-    this.drawMario(ctx, cx);
+    this.drawBlobs(ctx, cx);
+    this.drawPlayer(ctx, cx);
     this.drawParticles(ctx, cx);
     this.drawFloatTexts(ctx, cx);
     this.drawHUD(ctx);
@@ -503,25 +503,25 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private drawGoombas(ctx: CanvasRenderingContext2D, cx: number) {
-    for (const g of this.goombas) {
+  private drawBlobs(ctx: CanvasRenderingContext2D, cx: number) {
+    for (const g of this.blobs) {
       const gx = g.x - cx;
       if (gx + g.w < -10 || gx > CW + 10) continue;
       if (g.squished) {
-        if (g.squishT > 0) drawGoombaSquished(ctx, gx, g.y);
+        if (g.squishT > 0) drawBlobSquished(ctx, gx, g.y);
         continue;
       }
       if (!g.alive) continue;
-      drawGoomba(ctx, gx, g.y, g.animT);
+      drawBlob(ctx, gx, g.y, g.animT);
     }
   }
 
-  private drawMario(ctx: CanvasRenderingContext2D, cx: number) {
-    const m = this.mario;
+  private drawPlayer(ctx: CanvasRenderingContext2D, cx: number) {
+    const m = this.player;
     if (m.state === 'dead' && m.y > CH + 20) return;
     if (m.invincible > 0 && Math.floor(m.invincible * 6) % 2 === 0) return;
     const mx = m.x - cx;
-    drawMario(ctx, mx, m.y, m.facing, m.state, m.animT, m.big);
+    drawPlayer(ctx, mx, m.y, m.facing, m.state, m.animT, m.big);
   }
 
   private drawParticles(ctx: CanvasRenderingContext2D, cx: number) {
@@ -559,7 +559,7 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
     ctx.font = 'bold 14px monospace';
     ctx.fillStyle = '#fff';
     // Score
-    ctx.fillText('MARIO', 16, 14);
+    ctx.fillText('SCORE', 16, 14);
     ctx.fillText(String(this.score).padStart(6, '0'), 16, 30);
     // Coins
     drawCoin(ctx, 160, 14, 7, this.frameCount);
@@ -568,7 +568,7 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
     ctx.fillText('WORLD', 310, 14);
     ctx.fillText('  1-1', 310, 30);
     // Lives
-    ctx.fillText('♥ ×' + this.mario.lives, 480, 22);
+    ctx.fillText('❤ ×' + this.player.lives, 480, 22);
     // Best
     ctx.fillText(`BEST: ${this.best}`, 630, 22);
   }
@@ -586,7 +586,7 @@ export class MarioGameComponent implements AfterViewInit, OnDestroy {
     ctx.fillStyle = '#FFD700';
     ctx.font = 'bold 36px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('SUPER MARIO', CW/2, CH/2 - 70);
+    ctx.fillText('PIXEL HOPPER', CW/2, CH/2 - 70);
     ctx.font = '18px monospace';
     ctx.fillStyle = '#fff';
     ctx.fillText('Arrow Keys / WASD — Move', CW/2, CH/2 - 22);
@@ -704,13 +704,13 @@ function drawQBlock(ctx: CanvasRenderingContext2D, x:number, y:number, used:bool
     ctx.fillStyle = C.qBlockQ;
     ctx.font = 'bold 18px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('?', x + TILE/2, y + TILE - 7);
+    ctx.fillText('★', x + TILE/2, y + TILE - 7);
     ctx.textAlign = 'left';
   } else {
     ctx.fillStyle = '#555';
     ctx.font = 'bold 18px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('?', x + TILE/2, y + TILE - 7);
+    ctx.fillText('★', x + TILE/2, y + TILE - 7);
     ctx.textAlign = 'left';
   }
 }
@@ -745,7 +745,7 @@ function drawCoin(ctx: CanvasRenderingContext2D, x:number, y:number, r:number, t
   ctx.restore();
 }
 
-function drawGoomba(ctx: CanvasRenderingContext2D, x:number, y:number, t:number) {
+function drawBlob(ctx: CanvasRenderingContext2D, x:number, y:number, t:number) {
   const legOff = Math.sin(t * 0.2) * 4;
   // body
   ctx.fillStyle = C.goomba;
@@ -769,7 +769,7 @@ function drawGoomba(ctx: CanvasRenderingContext2D, x:number, y:number, t:number)
   ctx.fillRect(x+TILE-15, y+3, 9, 3);
 }
 
-function drawGoombaSquished(ctx: CanvasRenderingContext2D, x:number, y:number) {
+function drawBlobSquished(ctx: CanvasRenderingContext2D, x:number, y:number) {
   ctx.fillStyle = C.goomba;
   ctx.fillRect(x+2, y + TILE - 10, TILE - 4, 10);
   ctx.fillStyle = '#fff';
@@ -777,7 +777,7 @@ function drawGoombaSquished(ctx: CanvasRenderingContext2D, x:number, y:number) {
   ctx.fillRect(x+TILE-12, y + TILE - 9, 6, 5);
 }
 
-function drawMario(ctx: CanvasRenderingContext2D, x:number, y:number, facing:number, state:string, t:number, big:boolean) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x:number, y:number, facing:number, state:string, t:number, big:boolean) {
   ctx.save();
   ctx.translate(x + 13, y + 16);
   if (facing === -1) ctx.scale(-1, 1);
