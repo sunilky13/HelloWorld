@@ -57,6 +57,7 @@ interface Runner {
   y: number; vy: number; jumpCount: number;
   ducking: boolean; duckHeld: boolean;
   animT: number; dead: boolean;
+  lives: number; invincible: number;
 }
 interface Obstacle {
   x: number; y: number; w: number; h: number;
@@ -131,7 +132,7 @@ export class SwissRunComponent implements AfterViewInit, OnDestroy {
     this.spd = 5; this.bgScroll = 0;
     this.nextObs = 220; this.nextColl = 280;
     this.zoneIdx = 0; this.prevZone = -1; this.frameN = 0;
-    this.runner = { y: GY - 56, vy: 0, jumpCount: 0, ducking: false, duckHeld: false, animT: 0, dead: false };
+    this.runner = { y: GY - 56, vy: 0, jumpCount: 0, ducking: false, duckHeld: false, animT: 0, dead: false, lives: 3, invincible: 0 };
     this.obstacles = []; this.collectList = [];
     this.particles = []; this.floatTexts = [];
     this.zoneBanner = { text: '', alpha: 0 };
@@ -192,6 +193,7 @@ export class SwissRunComponent implements AfterViewInit, OnDestroy {
     const groundY = GY - (r.ducking ? 34 : 56);
     if (r.y >= groundY) { r.y = groundY; r.vy = 0; r.jumpCount = 0; }
     r.animT += dt;
+    if (r.invincible > 0) r.invincible -= dt;
 
     // Distance + speed
     this.dist += this.spd * dt;
@@ -226,13 +228,20 @@ export class SwissRunComponent implements AfterViewInit, OnDestroy {
     // Collisions — obstacles
     const ph = r.ducking ? 28 : 52, pw = 26;
     const py = r.y + (r.ducking ? 22 : 4);
-    for (const o of this.obstacles) {
-      if (rectOverlap(PX + 4, py, pw, ph, o.x + 4, o.y + 4, o.w - 8, o.h - 8)) {
-        this.runner.dead = true;
-        this.spawnDeathParticles(PX + 14, r.y + 24);
-        this.state = 'dead';
-        if (this.score > this.best) this.best = this.score;
-        return;
+    if (r.invincible <= 0) {
+      for (const o of this.obstacles) {
+        if (rectOverlap(PX + 4, py, pw, ph, o.x + 4, o.y + 4, o.w - 8, o.h - 8)) {
+          r.lives--;
+          this.spawnDeathParticles(PX + 14, r.y + 24);
+          if (r.lives <= 0) {
+            r.dead = true;
+            this.state = 'dead';
+            if (this.score > this.best) this.best = this.score;
+            return;
+          }
+          r.invincible = 120;
+          break;
+        }
       }
     }
 
@@ -415,6 +424,7 @@ export class SwissRunComponent implements AfterViewInit, OnDestroy {
   private drawRunner(ctx: CanvasRenderingContext2D) {
     const r = this.runner;
     if (r.dead) return;
+    if (r.invincible > 0 && Math.floor(r.invincible) % 6 < 3) return;
     drawHiker(ctx, PX, r.y, r.ducking, r.animT, r.jumpCount > 0, this.spd);
   }
 
@@ -447,10 +457,17 @@ export class SwissRunComponent implements AfterViewInit, OnDestroy {
     ctx.fillText(`DIST: ${km} km`, 12, 22);
     ctx.fillText(`SCORE: ${this.score}`, 160, 22);
     ctx.fillText(`BEST: ${this.best}`, 320, 22);
+    // Lives (hearts)
+    ctx.font = '16px sans-serif';
+    for (let i = 0; i < 3; i++) {
+      ctx.globalAlpha = i < this.runner.lives ? 1 : 0.2;
+      ctx.fillText('❤️', 470 + i * 22, 23);
+    }
+    ctx.globalAlpha = 1;
     // collectibles
     const cz = this.zone;
     ctx.fillStyle = cz.collectColor;
-    ctx.fillText(`${cz.icon} ${this.collectibles}`, 480, 22);
+    ctx.fillText(`${cz.icon} ${this.collectibles}`, 540, 22);
     // zone progress bar
     const pct = (this.dist % ZONE_LEN) / ZONE_LEN;
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -975,36 +992,101 @@ function drawCollectible(ctx:CanvasRenderingContext2D,x:number,y:number,type:str
 
 // ── Hiker (player) ────────────────────────────────────────────────────────────
 function drawHiker(ctx:CanvasRenderingContext2D,x:number,y:number,duck:boolean,t:number,jumping:boolean,spd:number){
-  const run=!duck&&!jumping;
-  const leg=run?Math.sin(t*0.28)*10:0;
-  const arm=run?Math.sin(t*0.28+Math.PI)*9:0;
+  const run=spd>0&&!duck;
+  const leg=run?Math.sin(t*0.28)*11:0;
+  const arm=run?Math.sin(t*0.28+Math.PI)*10:0;
 
-  ctx.save();ctx.translate(x+14,y+6);
-  if(duck) ctx.scale(1,0.65);
+  ctx.save();
+  ctx.translate(x+14, y+6);
+  ctx.scale(-1, 1); // face right (toward obstacles)
+  if(duck) ctx.scale(1, 0.65);
 
-  // backpack
-  ctx.fillStyle='#E05020';ctx.fillRect(2,4,10,20);ctx.fillRect(4,2,6,4);
+  // backpack (behind body — drawn first)
+  const bp=ctx.createLinearGradient(-14,4,-3,4);
+  bp.addColorStop(0,'#B82808');bp.addColorStop(1,'#E04020');
+  ctx.fillStyle=bp; ctx.beginPath(); ctx.roundRect(-14,3,11,22,2); ctx.fill();
+  ctx.fillStyle='#901800'; ctx.beginPath(); ctx.roundRect(-14,2,11,5,1); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(-11,6);ctx.lineTo(-8,24);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-7,6);ctx.lineTo(-4,24);ctx.stroke();
 
-  // body
-  ctx.fillStyle='#4080D0';ctx.fillRect(-10,4,22,24);
+  // torso — blue hiking jacket with gradient
+  const jkt=ctx.createLinearGradient(-10,4,10,28);
+  jkt.addColorStop(0,'#5A9AE8');jkt.addColorStop(1,'#2A62B0');
+  ctx.fillStyle=jkt; ctx.beginPath(); ctx.roundRect(-10,4,22,24,3); ctx.fill();
+  // jacket zipper line
+  ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(0,5);ctx.lineTo(0,27);ctx.stroke();
+  // collar
+  ctx.fillStyle='#D8E8F8';
+  ctx.beginPath();ctx.moveTo(-4,4);ctx.lineTo(0,10);ctx.lineTo(4,4);ctx.closePath();ctx.fill();
+
+  // back arm (with jacket sleeve)
+  ctx.fillStyle='#3070B8';
+  ctx.beginPath();ctx.roundRect(-12,5+arm,7,18,3);ctx.fill();
+  ctx.fillStyle='#F0C070'; // hand
+  ctx.beginPath();ctx.ellipse(-8,24+arm,3.5,3,0,0,Math.PI*2);ctx.fill();
 
   // head
-  ctx.fillStyle='#F8C870';ctx.beginPath();ctx.arc(0,-4,11,0,Math.PI*2);ctx.fill();
-  // hat
-  ctx.fillStyle='#C04020';ctx.fillRect(-10,-14,20,8);ctx.fillRect(-7,-20,14,8);
+  const sk=ctx.createRadialGradient(2,-4,2,0,-4,11);
+  sk.addColorStop(0,'#FDDEA0');sk.addColorStop(1,'#DEAF60');
+  ctx.fillStyle=sk;ctx.beginPath();ctx.arc(0,-4,11,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(150,80,10,0.25)';ctx.lineWidth=1;ctx.stroke();
 
-  // arms
-  ctx.fillStyle='#F8C870';
-  ctx.fillRect(-12,6+arm,6,18);ctx.fillRect(8,6-arm,6,18);
-  // walking poles (optional, drawn as sticks)
-  ctx.strokeStyle='#A0A0A0';ctx.lineWidth=2;
-  if(run||jumping){ctx.beginPath();ctx.moveTo(-6,22+arm);ctx.lineTo(-18,42);ctx.stroke();}
+  // hair
+  ctx.fillStyle='#4A2808';
+  ctx.beginPath();ctx.arc(0,-9,9,Math.PI,0);ctx.fill();
+  ctx.beginPath();ctx.arc(-8,-4,4.5,Math.PI*1.1,Math.PI*0.7);ctx.fill();
 
-  // legs
-  ctx.fillStyle='#303080';
-  ctx.fillRect(-10,28+leg,10,20);ctx.fillRect(2,28-leg,10,20);
-  ctx.fillStyle='#404040';
-  ctx.fillRect(-12,44+leg,12,8);ctx.fillRect(1,44-leg,12,8);
+  // face — eyes, nose, smile
+  ctx.fillStyle='#2A1808';
+  ctx.beginPath();ctx.ellipse(4,-5,1.6,1.9,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(-2,-5,1.6,1.9,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  ctx.beginPath();ctx.ellipse(4.8,-5.8,0.7,0.9,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(130,60,10,0.65)';ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(1,-2);ctx.lineTo(3,0.5);ctx.stroke();
+  ctx.beginPath();ctx.arc(1,0.5,3,0.15,Math.PI-0.15);ctx.stroke();
+
+  // Alpine hat — wide brim + feather
+  ctx.fillStyle='#704820'; // brim
+  ctx.beginPath();ctx.ellipse(0,-13,14.5,4,0,0,Math.PI*2);ctx.fill();
+  const hg=ctx.createLinearGradient(-7,-23,7,-13);
+  hg.addColorStop(0,'#9A6030');hg.addColorStop(1,'#5A3010');
+  ctx.fillStyle=hg;ctx.beginPath();ctx.roundRect(-7,-23,14,11,2);ctx.fill();
+  ctx.fillStyle='#C89030';ctx.fillRect(-7,-14,14,3); // hat band
+  ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(6,-14);ctx.quadraticCurveTo(13,-21,11,-25);ctx.stroke(); // feather
+
+  // front arm (closer to viewer)
+  ctx.fillStyle='#3070B8';
+  ctx.beginPath();ctx.roundRect(6,5-arm,7,18,3);ctx.fill();
+  ctx.fillStyle='#F0C070';
+  ctx.beginPath();ctx.ellipse(9.5,24-arm,3.5,3,0,0,Math.PI*2);ctx.fill();
+
+  // hiking pole (in forward hand, pointing ahead)
+  if(run||jumping){
+    ctx.strokeStyle='#A8B8C0';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(10,22-arm);ctx.lineTo(22,46);ctx.stroke();
+    ctx.fillStyle='#D05828';ctx.beginPath();ctx.ellipse(10,21-arm,3.5,3,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#707880';ctx.beginPath();ctx.arc(22,46,2.5,0,Math.PI*2);ctx.fill();
+  }
+
+  // legs — dark navy hiking trousers
+  const lg1=ctx.createLinearGradient(-10,28,0,49);
+  lg1.addColorStop(0,'#383890');lg1.addColorStop(1,'#202068');
+  const lg2=ctx.createLinearGradient(2,28,12,49);
+  lg2.addColorStop(0,'#383890');lg2.addColorStop(1,'#202068');
+  ctx.fillStyle=lg1;ctx.beginPath();ctx.roundRect(-10,28+leg,10,21,2);ctx.fill();
+  ctx.fillStyle=lg2;ctx.beginPath();ctx.roundRect(2,28-leg,10,21,2);ctx.fill();
+
+  // boots — leather brown with sole
+  const bt=()=>{const g2=ctx.createLinearGradient(0,0,0,10);g2.addColorStop(0,'#5A4028');g2.addColorStop(1,'#2A1808');return g2;};
+  ctx.fillStyle=bt();ctx.beginPath();ctx.roundRect(-13,47+leg,15,9,3);ctx.fill();
+  ctx.fillStyle=bt();ctx.beginPath();ctx.roundRect(1,47-leg,15,9,3);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(-12,53+leg);ctx.lineTo(1,53+leg);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(2,53-leg);ctx.lineTo(15,53-leg);ctx.stroke();
 
   ctx.restore();
 }

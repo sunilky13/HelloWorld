@@ -6,7 +6,7 @@ const CW = 800, CH = 420, GY = 340;
 const PX = 140;
 const GRAV = 0.7, JFORCE = -14.5;
 
-interface Player { y: number; vy: number; jumpCount: number; animT: number; dead: boolean; }
+interface Player { y: number; vy: number; jumpCount: number; animT: number; dead: boolean; lives: number; invincible: number; }
 interface Obstacle { x: number; y: number; w: number; h: number; type: string; }
 interface Coin     { x: number; y: number; taken: boolean; animT: number; }
 interface Cloud    { x: number; y: number; r: number; spd: number; }
@@ -45,6 +45,7 @@ export class CityJumperComponent implements AfterViewInit, OnDestroy {
   private groundX = 0;
   private nextObs = 0;
   private nextCoin = 0;
+  private frameN  = 0;
 
   @HostListener('window:keydown', ['$event'])
   onKD(e: KeyboardEvent) {
@@ -67,7 +68,8 @@ export class CityJumperComponent implements AfterViewInit, OnDestroy {
     cancelAnimationFrame(this.raf);
     this.score = this.dist = this.coins = 0;
     this.spd = 5; this.groundX = 0; this.nextObs = 160; this.nextCoin = 220;
-    this.player    = { y: GY - 52, vy: 0, jumpCount: 0, animT: 0, dead: false };
+    this.frameN = 0;
+    this.player    = { y: GY - 52, vy: 0, jumpCount: 0, animT: 0, dead: false, lives: 3, invincible: 0 };
     this.obstacles = [];
     this.coinList  = [];
     this.particles = [];
@@ -84,6 +86,7 @@ export class CityJumperComponent implements AfterViewInit, OnDestroy {
   private loop(ts: number) {
     const dt = Math.min((ts - this.lastTs) / 16.67, 3);
     this.lastTs = ts;
+    this.frameN++;
     this.update(dt);
     this.render();
     if (this.state === 'playing') this.raf = requestAnimationFrame(t => this.loop(t));
@@ -106,6 +109,7 @@ export class CityJumperComponent implements AfterViewInit, OnDestroy {
 
     if (p.y >= GY - 52) { p.y = GY - 52; p.vy = 0; p.jumpCount = 0; }
     p.animT += dt;
+    if (p.invincible > 0) p.invincible -= dt;
 
     // Speed ramp
     this.dist += this.spd * dt;
@@ -143,9 +147,11 @@ export class CityJumperComponent implements AfterViewInit, OnDestroy {
     // Collision — player hitbox
     const phx = PX - 9, phy = p.y + 4, phw = 18, phh = 44;
 
-    for (const o of this.obstacles) {
-      if (phx < o.x+o.w && phx+phw > o.x && phy < o.y+o.h && phy+phh > o.y) {
-        this.die(); return;
+    if (p.invincible <= 0) {
+      for (const o of this.obstacles) {
+        if (phx < o.x+o.w && phx+phw > o.x && phy < o.y+o.h && phy+phh > o.y) {
+          this.die(); return;
+        }
       }
     }
     for (const c of this.coinList) {
@@ -168,11 +174,16 @@ export class CityJumperComponent implements AfterViewInit, OnDestroy {
   }
 
   private die() {
-    if (this.player.dead) return;
-    this.player.dead = true;
-    if (this.score > this.best) this.best = this.score;
-    this.burst(PX, this.player.y + 20, '#ef4444', 14);
-    setTimeout(() => { this.state = 'dead'; cancelAnimationFrame(this.raf); }, 700);
+    if (this.player.dead || this.player.invincible > 0) return;
+    this.player.lives--;
+    this.burst(PX, this.player.y + 20, '#ef4444', 10);
+    if (this.player.lives <= 0) {
+      this.player.dead = true;
+      if (this.score > this.best) this.best = this.score;
+      setTimeout(() => { this.state = 'dead'; cancelAnimationFrame(this.raf); }, 700);
+    } else {
+      this.player.invincible = 120;
+    }
   }
 
   private burst(x: number, y: number, color: string, n: number) {
@@ -194,7 +205,7 @@ export class CityJumperComponent implements AfterViewInit, OnDestroy {
     this.drawCoins(c);
     for (const o of this.obstacles) this.drawObstacle(c, o);
     this.drawParticles(c);
-    if (!this.player.dead) this.drawPlayer(c);
+    if (!this.player.dead && !(this.player.invincible > 0 && this.frameN % 6 < 3)) this.drawPlayer(c);
     this.drawHUD(c);
   }
 
@@ -497,6 +508,14 @@ export class CityJumperComponent implements AfterViewInit, OnDestroy {
     c.font='14px serif'; c.fillText('₣', 22, 32);
     c.fillStyle='#fbbf24'; c.font='bold 13px sans-serif';
     c.fillText(`× ${this.coins}`, 36, 32);
+
+    // Lives (hearts)
+    c.font = '16px sans-serif';
+    for (let i = 0; i < 3; i++) {
+      c.globalAlpha = i < this.player.lives ? 1 : 0.2;
+      c.fillText('❤️', 145 + i * 22, 32);
+    }
+    c.globalAlpha = 1;
 
     // Speed level
     const level = Math.floor((this.spd-5)/0.6)+1;
