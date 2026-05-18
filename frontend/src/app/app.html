@@ -2,7 +2,7 @@
 
   <!-- ── Nav bar ── -->
   <nav class="navbar">
-    <span class="nav-brand" (click)="activeMenu.set('home')" [class.active]="activeMenu() === 'home'" title="Home">🇨🇭 {{ message() }}</span>
+    <span class="nav-brand" (click)="activeMenu.set('home')" [class.active]="activeMenu() === 'home'" title="Home">🇨🇭 <span class="nav-brand-text">{{ message() }}</span></span>
     <div class="nav-links">
       <button class="nav-btn" [class.active]="activeMenu() === 'sudoku'"     (click)="activeMenu.set('sudoku')"     title="Sudoku">🔢</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'stickman'"   (click)="activeMenu.set('stickman')"   title="Stickman">🎮</button>

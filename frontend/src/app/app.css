@@ -274,11 +274,20 @@ main {
   .game-cards { grid-template-columns: repeat(2, 1fr); max-width: 480px; }
 }
 
-@media (max-width: 600px) {
-  .navbar { flex-direction: column; gap: 0.5rem; }
-  .nav-brand { font-size: 1rem; }
+/* ── Mobile (≤500px) — fits iPhone 14 at 390px ── */
+@media (max-width: 500px) {
+  .navbar { padding: 0.5rem 0.75rem; }
+  .nav-brand { font-size: 1.1rem; padding: 0.25rem 0.4rem; }
+  .nav-brand-text { display: none; }   /* show only 🇨🇭 flag */
+  .nav-links { gap: 0.2rem; }
+  .nav-btn { width: 36px; height: 34px; font-size: 1.1rem; }
   .home-page h1 { font-size: 1.8rem; }
-  .game-cards { grid-template-columns: repeat(2, 1fr); max-width: 360px; }
+  .home-page .tagline { font-size: 0.95rem; }
+  .game-cards { grid-template-columns: repeat(2, 1fr); max-width: 340px; gap: 0.75rem; }
+  .card { padding: 1rem 0.75rem; gap: 0.5rem; }
+  .card-icon { font-size: 2.2rem; }
+  .card h3 { font-size: 1.05rem; }
+  .card p { font-size: 0.8rem; }
   .game-area { flex-direction: column; align-items: center; }
   .actions { flex-direction: row; }
   .action-btn { width: auto; }
