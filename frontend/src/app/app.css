@@ -31,26 +31,36 @@
   color: #fff;
   text-shadow: 0 2px 8px rgba(0,0,0,0.6);
   letter-spacing: 0.02em;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+  user-select: none;
 }
+.nav-brand:hover { background: rgba(255,255,255,0.1); }
+.nav-brand.active { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.4); }
 
-.nav-links { display: flex; gap: 0.5rem; }
+.nav-links { display: flex; gap: 0.35rem; }
 
 .nav-btn {
-  padding: 0.45rem 1.1rem;
-  font-size: 0.92rem;
-  font-weight: 600;
+  width: 42px;
+  height: 38px;
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 1;
   border: 1px solid rgba(255,255,255,0.2);
   border-radius: 8px;
   cursor: pointer;
   background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.8);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  color: rgba(255,255,255,0.85);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
-.nav-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
+.nav-btn:hover { background: rgba(255,255,255,0.22); transform: scale(1.1); }
 .nav-btn.active {
   background: rgba(255,255,255,0.28);
-  color: #fff;
-  border-color: rgba(255,255,255,0.5);
+  border-color: rgba(255,255,255,0.55);
+  transform: scale(1.05);
 }
 
 /* ── Main content area ── */
@@ -86,9 +96,9 @@ main {
 }
 
 .game-cards {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 220px);
+  gap: 1.25rem;
   justify-content: center;
 }
 
@@ -97,8 +107,8 @@ main {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  padding: 2rem 1.75rem;
-  width: 240px;
+  padding: 1.5rem 1.25rem;
+  width: 100%;
   background: rgba(255,255,255,0.12);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255,255,255,0.25);
@@ -256,10 +266,19 @@ main {
 }
 
 /* ── Mobile ── */
+@media (max-width: 960px) {
+  .game-cards { grid-template-columns: repeat(3, 1fr); max-width: 720px; }
+}
+
+@media (max-width: 680px) {
+  .game-cards { grid-template-columns: repeat(2, 1fr); max-width: 480px; }
+}
+
 @media (max-width: 600px) {
-  .navbar { flex-direction: column; gap: 0.6rem; }
+  .navbar { flex-direction: column; gap: 0.5rem; }
   .nav-brand { font-size: 1rem; }
   .home-page h1 { font-size: 1.8rem; }
+  .game-cards { grid-template-columns: repeat(2, 1fr); max-width: 360px; }
   .game-area { flex-direction: column; align-items: center; }
   .actions { flex-direction: row; }
   .action-btn { width: auto; }

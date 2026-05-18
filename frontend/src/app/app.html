@@ -2,16 +2,15 @@
 
   <!-- ── Nav bar ── -->
   <nav class="navbar">
-    <span class="nav-brand">🇨🇭 {{ message() }}</span>
+    <span class="nav-brand" (click)="activeMenu.set('home')" [class.active]="activeMenu() === 'home'" title="Home">🇨🇭 {{ message() }}</span>
     <div class="nav-links">
-      <button class="nav-btn" [class.active]="activeMenu() === 'home'"     (click)="activeMenu.set('home')">🏠 Home</button>
-      <button class="nav-btn" [class.active]="activeMenu() === 'sudoku'"   (click)="activeMenu.set('sudoku')">🔢 Sudoku</button>
-      <button class="nav-btn" [class.active]="activeMenu() === 'stickman'" (click)="activeMenu.set('stickman')">🎮 Stickman</button>
-      <button class="nav-btn" [class.active]="activeMenu() === 'cityjumper'" (click)="activeMenu.set('cityjumper')">🏙️ City Jumper</button>
-      <button class="nav-btn" [class.active]="activeMenu() === 'everest'"   (click)="activeMenu.set('everest')">🏔️ Everest</button>
-      <button class="nav-btn" [class.active]="activeMenu() === 'bikeride'"  (click)="activeMenu.set('bikeride')">🚴 Bike Ride</button>
-      <button class="nav-btn" [class.active]="activeMenu() === 'chess'"     (click)="activeMenu.set('chess')">♟️ Chess</button>
-      <button class="nav-btn" [class.active]="activeMenu() === 'mario'"     (click)="activeMenu.set('mario')">🏃 Pixel Hopper</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'sudoku'"     (click)="activeMenu.set('sudoku')"     title="Sudoku">🔢</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'stickman'"   (click)="activeMenu.set('stickman')"   title="Stickman">🎮</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'cityjumper'" (click)="activeMenu.set('cityjumper')" title="City Jumper">🏙️</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'everest'"    (click)="activeMenu.set('everest')"    title="Everest">🏔️</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'bikeride'"   (click)="activeMenu.set('bikeride')"   title="Bike Ride">🚴</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'chess'"      (click)="activeMenu.set('chess')"      title="Chess">♟️</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'mario'"      (click)="activeMenu.set('mario')"      title="Pixel Hopper">🏃</button>
     </div>
   </nav>
 
