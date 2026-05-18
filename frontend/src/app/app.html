@@ -11,6 +11,7 @@
       <button class="nav-btn" [class.active]="activeMenu() === 'everest'"   (click)="activeMenu.set('everest')">🏔️ Everest</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'bikeride'"  (click)="activeMenu.set('bikeride')">🚴 Bike Ride</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'chess'"     (click)="activeMenu.set('chess')">♟️ Chess</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'mario'"     (click)="activeMenu.set('mario')">🍄 Mario</button>
     </div>
   </nav>
 
@@ -57,6 +58,12 @@
             <h3>Chess</h3>
             <p>Classic chess with full rules — castling, en passant &amp; promotion. Play locally or challenge the AI!</p>
             <button class="card-btn">Play Chess</button>
+          </div>
+          <div class="card" (click)="activeMenu.set('mario')">
+            <div class="card-icon">🍄</div>
+            <h3>Super Mario</h3>
+            <p>Run, jump &amp; stomp Goombas! Hit ? blocks, grab coins and race to the flag in this 8-bit platformer.</p>
+            <button class="card-btn">Play Mario</button>
           </div>
         </div>
       </div>
@@ -140,6 +147,12 @@
     @if (activeMenu() === 'chess') {
       <div class="chess-page">
         <app-chess-game></app-chess-game>
+      </div>
+    }
+
+    @if (activeMenu() === 'mario') {
+      <div class="mario-page">
+        <app-mario-game></app-mario-game>
       </div>
     }
 

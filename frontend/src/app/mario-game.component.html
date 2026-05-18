@@ -1,0 +1,21 @@
+<div class="mario-wrap">
+  <canvas #canvas class="mario-canvas" (click)="onTouchStart()"></canvas>
+
+  <!-- Touch controls (mobile) -->
+  <div class="touch-controls">
+    <div class="touch-left">
+      <button class="t-btn"
+        (touchstart)="onTouchLeft(true);  $event.preventDefault()"
+        (touchend)="onTouchLeft(false);   $event.preventDefault()"
+        (mousedown)="onTouchLeft(true)"   (mouseup)="onTouchLeft(false)">◀</button>
+      <button class="t-btn"
+        (touchstart)="onTouchRight(true); $event.preventDefault()"
+        (touchend)="onTouchRight(false);  $event.preventDefault()"
+        (mousedown)="onTouchRight(true)"  (mouseup)="onTouchRight(false)">▶</button>
+    </div>
+    <button class="t-btn t-jump"
+      (touchstart)="onTouchJump(true);  $event.preventDefault()"
+      (touchend)="onTouchJump(false);   $event.preventDefault()"
+      (mousedown)="onTouchJump(true)"   (mouseup)="onTouchJump(false)">JUMP</button>
+  </div>
+</div>

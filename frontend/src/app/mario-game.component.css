@@ -1,0 +1,51 @@
+.mario-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mario-canvas {
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+  image-rendering: pixelated;
+  max-width: 100%;
+}
+
+/* Touch controls */
+.touch-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 800px;
+  padding: 0 0.5rem;
+}
+
+.touch-left { display: flex; gap: 0.5rem; }
+
+.t-btn {
+  width: 56px; height: 56px;
+  font-size: 1.1rem; font-weight: 700;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: background 0.1s;
+}
+.t-btn:active { background: rgba(255,255,255,0.35); }
+
+.t-jump {
+  width: 72px; height: 56px;
+  background: rgba(99,179,237,0.4);
+  font-size: 0.85rem;
+}
+.t-jump:active { background: rgba(99,179,237,0.7); }
+
+@media (min-width: 700px) {
+  .touch-controls { display: none; }
+}

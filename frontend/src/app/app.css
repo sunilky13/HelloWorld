@@ -248,7 +248,8 @@ main {
 .city-jumper-page,
 .everest-page,
 .bikeride-page,
-.chess-page {
+.chess-page,
+.mario-page {
   display: flex;
   justify-content: center;
   width: 100%;
