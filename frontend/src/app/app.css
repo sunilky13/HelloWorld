@@ -258,7 +258,8 @@ main {
 .everest-page,
 .bikeride-page,
 .chess-page,
-.mario-page {
+.mario-page,
+.swissrun-page {
   display: flex;
   justify-content: center;
   width: 100%;

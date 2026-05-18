@@ -1,0 +1,13 @@
+<div class="swiss-run-wrap">
+  <canvas #canvas class="swiss-run-canvas" (click)="onTouchJump()"></canvas>
+
+  <div class="touch-controls">
+    <button class="t-btn t-jump"
+      (touchstart)="onTouchJump();    $event.preventDefault()"
+      (mousedown)="onTouchJump()">▲ JUMP</button>
+    <button class="t-btn t-duck"
+      (touchstart)="onTouchDuckStart(); $event.preventDefault()"
+      (touchend)="onTouchDuckEnd();   $event.preventDefault()"
+      (mousedown)="onTouchDuckStart()" (mouseup)="onTouchDuckEnd()">▼ DUCK</button>
+  </div>
+</div>

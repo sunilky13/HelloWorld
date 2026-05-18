@@ -12,6 +12,7 @@
       <button class="nav-btn" [class.active]="activeMenu() === 'bikeride'"   (click)="activeMenu.set('bikeride')"   title="Bike Ride">🚴</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'chess'"      (click)="activeMenu.set('chess')"      title="Chess">♟️</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'mario'"      (click)="activeMenu.set('mario')"      title="Pixel Hopper">🏃</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'swissrun'"  (click)="activeMenu.set('swissrun')"  title="Swiss Runner">🇨🇭</button>
     </div>
   </nav>
 
@@ -56,6 +57,11 @@
           <div class="card" (click)="activeMenu.set('mario')">
             <div class="card-icon">🏃</div>
             <h3>Pixel Hopper</h3>
+            <button class="card-btn">Play</button>
+          </div>
+          <div class="card" (click)="activeMenu.set('swissrun')">
+            <div class="card-icon">🇨🇭</div>
+            <h3>Swiss Runner</h3>
             <button class="card-btn">Play</button>
           </div>
         </div>
@@ -146,6 +152,12 @@
     @if (activeMenu() === 'mario') {
       <div class="mario-page">
         <app-mario-game></app-mario-game>
+      </div>
+    }
+
+    @if (activeMenu() === 'swissrun') {
+      <div class="swissrun-page">
+        <app-swiss-run></app-swiss-run>
       </div>
     }
 

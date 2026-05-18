@@ -1,0 +1,40 @@
+.swiss-run-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.swiss-run-canvas {
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+  max-width: 100%;
+}
+
+.touch-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.t-btn {
+  width: 120px; height: 52px;
+  font-size: 0.95rem; font-weight: 700;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: background 0.1s;
+}
+.t-btn:active { background: rgba(255,255,255,0.35); }
+.t-jump { background: rgba(99,179,237,0.35); }
+.t-jump:active { background: rgba(99,179,237,0.65); }
+.t-duck { background: rgba(237,137,99,0.35); }
+.t-duck:active { background: rgba(237,137,99,0.65); }
+
+@media (min-width: 700px) {
+  .touch-controls { display: none; }
+}

@@ -8,13 +8,14 @@ import { EverestClimbComponent } from './everest-climb.component';
 import { BikeRideComponent } from './bike-ride.component';
 import { ChessGameComponent } from './chess-game.component';
 import { MarioGameComponent } from './mario-game.component';
+import { SwissRunComponent } from './swiss-run.component';
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
-type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper' | 'everest' | 'bikeride' | 'chess' | 'mario';
+type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper' | 'everest' | 'bikeride' | 'chess' | 'mario' | 'swissrun';
 
 @Component({
   selector: 'app-root',
-  imports: [StickmanGameComponent, CityJumperComponent, EverestClimbComponent, BikeRideComponent, ChessGameComponent, MarioGameComponent],
+  imports: [StickmanGameComponent, CityJumperComponent, EverestClimbComponent, BikeRideComponent, ChessGameComponent, MarioGameComponent, SwissRunComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
