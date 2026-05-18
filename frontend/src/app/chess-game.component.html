@@ -1,21 +1,5 @@
 <div class="chess-wrap">
 
-  <div class="game-header">
-    <h2 class="game-title">♟️ Chess</h2>
-    <div class="controls">
-      <button class="ctrl-btn" (click)="newGame()">New Game</button>
-      <button class="ctrl-btn" [class.active]="vsAI()" (click)="toggleAI()">
-        {{ vsAI() ? '🤖 vs AI' : '👥 2 Players' }}
-      </button>
-    </div>
-  </div>
-
-  <!-- Black's captured pieces (pieces black has taken from white) -->
-  <div class="captured-row">
-    <span class="cap-label">⬛ took:</span>
-    <span class="cap-pieces">{{ capByBlack }}</span>
-  </div>
-
   <!-- Board -->
   <div class="board-shell">
     <div class="board">
@@ -43,18 +27,33 @@
     </div>
   </div>
 
-  <!-- White's captured pieces -->
-  <div class="captured-row">
-    <span class="cap-label">⬜ took:</span>
-    <span class="cap-pieces">{{ capByWhite }}</span>
-  </div>
+  <!-- Side panel -->
+  <div class="side-panel">
+    <h2 class="game-title">♟️ Chess</h2>
 
-  <!-- Status bar -->
-  <div class="status-bar"
-       [class.in-check]="status()==='check'"
-       [class.game-over]="status()==='checkmate'||status()==='stalemate'"
-       [class.thinking]="thinking()">
-    {{ statusMsg }}
+    <div class="controls">
+      <button class="ctrl-btn" (click)="newGame()">New Game</button>
+      <button class="ctrl-btn" [class.active]="vsAI()" (click)="toggleAI()">
+        {{ vsAI() ? '🤖 vs AI' : '👥 2 Players' }}
+      </button>
+    </div>
+
+    <div class="status-bar"
+         [class.in-check]="status()==='check'"
+         [class.game-over]="status()==='checkmate'||status()==='stalemate'"
+         [class.thinking]="thinking()">
+      {{ statusMsg }}
+    </div>
+
+    <div class="cap-block">
+      <div class="cap-heading">⬛ Black took</div>
+      <div class="cap-pieces">{{ capByBlack || '—' }}</div>
+    </div>
+
+    <div class="cap-block">
+      <div class="cap-heading">⬜ White took</div>
+      <div class="cap-pieces">{{ capByWhite || '—' }}</div>
+    </div>
   </div>
 
 </div>
