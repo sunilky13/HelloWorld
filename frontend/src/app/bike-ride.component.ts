@@ -47,6 +47,8 @@ export class BikeRideComponent implements AfterViewInit, OnDestroy {
   private playerGY = CH - 120;
   private jumpVy = 0;
   private airborne = false;
+  private jumpsUsed = 0;
+  private jumpKeyWasDown = false;
   private touchJump = false;
   private hitTimer = 0;
 
@@ -84,7 +86,7 @@ export class BikeRideComponent implements AfterViewInit, OnDestroy {
     this.state = 'playing';
     this.miles = 0; this.worldX = 0; this.spd = BASE_SPD;
     this.animT = 0; this.bgOffX = 0; this.mgOffX = 0;
-    this.playerY = CH - 120; this.jumpVy = 0; this.airborne = false;
+    this.playerY = CH - 120; this.jumpVy = 0; this.airborne = false; this.jumpsUsed = 0; this.jumpKeyWasDown = false;
     this.obstacles = []; this.nextObs = 300; this.particles = [];
     this.terrain = []; this.terrainWX = 0;
     this.buildInitialTerrain();
@@ -163,14 +165,16 @@ export class BikeRideComponent implements AfterViewInit, OnDestroy {
     else                 this.spd += (BASE_SPD - this.spd) * 0.02 * dt;
     if (this.hitTimer > 0) { this.spd = MIN_SPD; this.hitTimer -= dt; }
 
-    // Jump
+    // Jump (double jump allowed)
     const wantJump = this.keys.has('Space') || this.keys.has('ArrowUp') || this.keys.has('KeyW') || this.touchJump;
-    if (wantJump && !this.airborne) { this.jumpVy = JUMP_V; this.airborne = true; }
+    const justPressed = wantJump && !this.jumpKeyWasDown;
+    if (justPressed && this.jumpsUsed < 2) { this.jumpVy = JUMP_V; this.airborne = true; this.jumpsUsed++; }
+    this.jumpKeyWasDown = wantJump;
 
     if (this.airborne) {
       this.jumpVy += GRAV * dt;
       this.playerY += this.jumpVy * dt;
-      if (this.playerY >= this.playerGY) { this.playerY = this.playerGY; this.jumpVy = 0; this.airborne = false; }
+      if (this.playerY >= this.playerGY) { this.playerY = this.playerGY; this.jumpVy = 0; this.airborne = false; this.jumpsUsed = 0; }
     } else {
       this.playerY = this.playerGY;
     }
