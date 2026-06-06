@@ -3,32 +3,30 @@ import {
 } from '@angular/core';
 
 const CW = 800, CH = 450;
-const BASE_SPD = 5;           // km/s both characters
-const BOOST_SPD = 6;          // km/s Deku boost
+const BASE_SPD = 5;
+const BOOST_SPD = 6;
 const TOTAL_KM = 1000;
-const BOOST_DURATION = 180;   // frames
-const BOOST_COOLDOWN = 360;   // frames
-const PUNCH_RANGE = 120;      // px gap to allow punch
+const BOOST_DURATION = 180;
+const BOOST_COOLDOWN = 360;
+const PUNCH_RANGE = 120;
 const BOSS_PUNCHES = 3;
+const PS = 3; // art-pixel size: 1 "pixel" = 3×3 screen pixels
 
 type Phase = 'start' | 'run' | 'boss' | 'win' | 'lose';
 type BossState = 'idle' | 'attack' | 'stagger' | 'dead';
 type Biome = 'tokyo' | 'fuji' | 'kyoto' | 'countryside' | 'osaka' | 'finish';
 
-const BIOMES: { name: Biome; label: string; km: [number, number]; hillAmp: number }[] = [
-  { name: 'tokyo',       label: '🏙️ Tokyo',          km: [0, 180],    hillAmp: 8  },
-  { name: 'fuji',        label: '🗻 Mt. Fuji',        km: [180, 380],  hillAmp: 70 },
-  { name: 'kyoto',       label: '⛩️ Kyoto',           km: [380, 550],  hillAmp: 25 },
-  { name: 'countryside', label: '🌾 Countryside',     km: [550, 720],  hillAmp: 40 },
-  { name: 'osaka',       label: '🏯 Osaka',           km: [720, 900],  hillAmp: 12 },
-  { name: 'finish',      label: '🎌 Final Showdown',  km: [900, 1000], hillAmp: 5  },
+const BIOMES: { name: Biome; label: string; km: [number, number]; hillAmp: number; skyTop: string; skyBot: string }[] = [
+  { name: 'tokyo',       label: '🏙️ Tokyo',         km: [0, 180],    hillAmp: 8,  skyTop: '#080818', skyBot: '#18082a' },
+  { name: 'fuji',        label: '🗻 Mt. Fuji',       km: [180, 380],  hillAmp: 70, skyTop: '#060e18', skyBot: '#0e1828' },
+  { name: 'kyoto',       label: '⛩️ Kyoto',          km: [380, 550],  hillAmp: 25, skyTop: '#18060e', skyBot: '#28101a' },
+  { name: 'countryside', label: '🌾 Countryside',    km: [550, 720],  hillAmp: 40, skyTop: '#060e06', skyBot: '#0e1a0e' },
+  { name: 'osaka',       label: '🏯 Osaka',          km: [720, 900],  hillAmp: 12, skyTop: '#180606', skyBot: '#280c0c' },
+  { name: 'finish',      label: '🎌 Final Showdown', km: [900, 1000], hillAmp: 5,  skyTop: '#1a0000', skyBot: '#3a0000' },
 ];
 
 interface Particle {
   x: number; y: number; vx: number; vy: number; alpha: number; c: string; r: number; life: number;
-}
-interface CherryPetal {
-  x: number; y: number; vx: number; vy: number; rot: number; rotV: number; alpha: number; size: number;
 }
 
 @Component({
@@ -84,7 +82,6 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
   private terrain: { x: number; y: number }[] = [];
   private terrainWX = 0;
   private particles: Particle[] = [];
-  private petals: CherryPetal[] = [];
   private touchJump = false;
   private touchPunch = false;
   private touchBoost = false;
@@ -92,35 +89,32 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
   get currentBiome(): typeof BIOMES[0] {
     return BIOMES.find(b => this.km >= b.km[0] && this.km < b.km[1]) ?? BIOMES[BIOMES.length - 1];
   }
-
   get boosting(): boolean { return this.boostFrames > 0; }
   get boostReady(): boolean { return this.boostCooldown <= 0; }
-  get playerHPArr(): number[] { return Array.from({ length: this.playerHP }); }
 
   @HostListener('window:keydown', ['$event'])
   onKD(e: KeyboardEvent) {
     this.keys.add(e.code);
-    if (['Space', 'ArrowUp', 'KeyW', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)
-      && this.phase === 'run') e.preventDefault();
+    if (['Space', 'ArrowUp', 'KeyW'].includes(e.code) && this.phase === 'run') e.preventDefault();
     if (this.phase === 'start' && ['Space', 'Enter'].includes(e.code)) this.startGame();
-    if (this.phase === 'win' && ['Space', 'Enter'].includes(e.code)) this.resetGame();
-    if (this.phase === 'lose' && ['Space', 'Enter'].includes(e.code)) this.resetGame();
+    if ((this.phase === 'win' || this.phase === 'lose') && ['Space', 'Enter'].includes(e.code)) this.resetGame();
   }
   @HostListener('window:keyup', ['$event'])
   onKU(e: KeyboardEvent) { this.keys.delete(e.code); }
 
   ngAfterViewInit() {
     this.ctx = this.canvasRef.nativeElement.getContext('2d')!;
+    this.ctx.imageSmoothingEnabled = false;
     this.buildTerrain(0);
     this.drawFrame();
   }
   ngOnDestroy() { cancelAnimationFrame(this.raf); }
 
-  pressJump()  { this.touchJump = true; }
-  relJump()    { this.touchJump = false; }
-  pressBoost() { this.touchBoost = true; }
+  pressJump()  { this.touchJump  = true;  }
+  relJump()    { this.touchJump  = false; }
+  pressBoost() { this.touchBoost = true;  }
   relBoost()   { this.touchBoost = false; }
-  pressPunch() { this.touchPunch = true; }
+  pressPunch() { this.touchPunch = true;  }
   relPunch()   { this.touchPunch = false; }
 
   startGame() {
@@ -133,7 +127,7 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
     this.shigX = 380; this.shigY = CH - 120; this.shigSpd = BASE_SPD;
     this.bossState = 'idle'; this.bossHits = 0; this.bossTimer = 0;
     this.bossAttackCooldown = 120; this.playerHP = 3; this.punchWas = false; this.playerHitTimer = 0;
-    this.particles = []; this.petals = [];
+    this.particles = [];
     this.terrain = []; this.terrainWX = 0;
     this.buildTerrain(0);
     this.lastTs = performance.now();
@@ -141,6 +135,8 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
   }
 
   resetGame() { this.phase = 'start'; cancelAnimationFrame(this.raf); this.drawFrame(); }
+
+  // ── Terrain ───────────────────────────────────────────────────────────────
 
   private buildTerrain(startWX: number) {
     const count = Math.ceil((CW + 300) / 4) + 4;
@@ -155,10 +151,7 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
     const kmX = wx / (1000000 / TOTAL_KM);
     const biome = BIOMES.find(b => kmX >= b.km[0] && kmX < b.km[1]) ?? BIOMES[BIOMES.length - 1];
     const amp = biome.hillAmp;
-    return (CH - 90)
-      - amp * Math.sin(wx / 800)
-      - 15 * Math.sin(wx / 190 + 1.2)
-      - 5 * Math.sin(wx / 60 + 0.7);
+    return (CH - 90) - amp * Math.sin(wx / 800) - 15 * Math.sin(wx / 190 + 1.2) - 5 * Math.sin(wx / 60 + 0.7);
   }
 
   private scrollTerrain(spd: number) {
@@ -178,7 +171,7 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
     return a.y + (b.y - a.y) * t;
   }
 
-  // ── Main loop ──────────────────────────────────────────────────────────────
+  // ── Game loop ─────────────────────────────────────────────────────────────
 
   private loop(ts: number) {
     const dt = Math.min((ts - this.lastTs) / 16.67, 3);
@@ -195,7 +188,6 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
   private updateRun(dt: number) {
     this.animT += dt;
 
-    // Boost activation
     const wantBoost = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.touchBoost;
     if (wantBoost && this.boostCooldown <= 0 && this.boostFrames <= 0) {
       this.boostFrames = BOOST_DURATION;
@@ -205,18 +197,15 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
     else { this.dekuSpd = BASE_SPD; }
     if (this.boostCooldown > 0) this.boostCooldown -= dt;
 
-    // Scroll
     const scroll = this.dekuSpd;
     this.scrollTerrain(scroll);
     this.worldX += scroll;
-    this.bgOff += scroll * 0.15;
-    this.mgOff += scroll * 0.4;
+    this.bgOff += scroll * 0.12;
+    this.mgOff += scroll * 0.35;
 
-    // Ground
     this.dekuGY = this.getGroundAt(this.dekuX);
-    this.shigGY = this.getGroundAt(this.shigX);
+    this.shigGY  = this.getGroundAt(this.shigX);
 
-    // Deku jump
     const wantJump = this.keys.has('Space') || this.keys.has('ArrowUp') || this.keys.has('KeyW') || this.touchJump;
     const justJump = wantJump && !this.dekuJumpWas;
     if (justJump && this.dekuJumps < 2) { this.dekuVy = -13; this.dekuAir = true; this.dekuJumps++; }
@@ -228,51 +217,36 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
       if (this.dekuY >= this.dekuGY) { this.dekuY = this.dekuGY; this.dekuVy = 0; this.dekuAir = false; this.dekuJumps = 0; }
     } else { this.dekuY = this.dekuGY; }
 
-    // Shigaraki stays ahead — screen position drifts based on speed diff
     const gap = this.shigX - this.dekuX;
-    // During boost Deku closes gap; normal = gap maintained at ~180px
     const targetGap = this.boosting ? 80 : 180;
     this.shigX += (targetGap - gap) * 0.02 * dt + (this.shigSpd - this.dekuSpd) * dt * 0.5;
     this.shigX = Math.max(this.dekuX + 40, Math.min(CW - 60, this.shigX));
-    this.shigY = this.shigGY;
+    this.shigY  = this.shigGY;
 
-    // Green sparks while boosting
     if (this.boosting && Math.random() < 0.5) {
       this.particles.push({
         x: this.dekuX + (Math.random() - 0.5) * 30,
-        y: this.dekuY - 40 + (Math.random() - 0.5) * 40,
-        vx: -3 + (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 4,
-        alpha: 1, c: Math.random() > 0.4 ? '#4ade80' : '#86efac', r: 2 + Math.random() * 3, life: 1
+        y: this.dekuY - 50 + (Math.random() - 0.5) * 40,
+        vx: -3 + (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 4,
+        alpha: 1, c: Math.random() > 0.4 ? '#00e5ff' : '#4ade80', r: 2 + Math.random() * 3, life: 1
       });
     }
 
-    // Punch during boost (Z or Ctrl)
     const wantPunch = this.keys.has('KeyZ') || this.keys.has('ControlLeft') || this.touchPunch;
     const justPunch = wantPunch && !this.punchWas;
     this.punchWas = wantPunch;
     if (justPunch && this.boosting && (this.shigX - this.dekuX) < PUNCH_RANGE) {
       this.spawnPunchEffect(this.shigX - 20, this.shigY - 40);
-      this.shigX += 60; // knock back
+      this.shigX += 60;
     }
 
-    // Cherry petals
-    if (this.currentBiome.name === 'kyoto' && Math.random() < 0.15) this.spawnPetal();
-    for (const p of this.petals) {
-      p.x += p.vx; p.y += p.vy; p.rot += p.rotV; p.alpha -= 0.004;
-      p.vy += 0.03; p.vx += Math.sin(this.animT * 0.05 + p.x) * 0.02;
-    }
-    this.petals = this.petals.filter(p => p.alpha > 0 && p.y < CH + 20);
-
-    // Particles
     for (const p of this.particles) {
-      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.1 * dt; p.alpha -= 0.03 * dt; p.life -= dt * 0.05;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.1 * dt; p.alpha -= 0.03 * dt;
     }
     this.particles = this.particles.filter(p => p.alpha > 0);
 
-    // Distance
     this.km = Math.min(TOTAL_KM, this.worldX / (1000000 / TOTAL_KM));
-    if (this.km >= TOTAL_KM) { this.phase = 'boss'; this.shigX = CW - 120; this.dekuX = 120; }
+    if (this.km >= TOTAL_KM) { this.phase = 'boss'; this.shigX = CW - 140; this.dekuX = 140; }
   }
 
   // ── Boss phase ────────────────────────────────────────────────────────────
@@ -281,7 +255,6 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
     this.animT += dt;
     if (this.playerHitTimer > 0) this.playerHitTimer -= dt;
 
-    // Punch input
     const wantPunch = this.keys.has('KeyZ') || this.keys.has('ControlLeft') || this.touchPunch;
     const justPunch = wantPunch && !this.punchWas;
     this.punchWas = wantPunch;
@@ -296,17 +269,15 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
         if (this.bossHits >= BOSS_PUNCHES) { this.bossState = 'dead'; this.phase = 'win'; }
       }
       if (this.bossAttackCooldown <= 0) {
-        this.bossState = 'attack';
-        this.bossTimer = 40;
+        this.bossState = 'attack'; this.bossTimer = 40;
         this.bossAttackCooldown = 150 + Math.random() * 100;
       }
     } else if (this.bossState === 'attack') {
       this.bossTimer -= dt;
       if (this.bossTimer <= 20 && this.playerHitTimer <= 0 && Math.abs(this.shigX - this.dekuX - 60) < 130) {
-        this.playerHP--;
-        this.playerHitTimer = 80;
+        this.playerHP--; this.playerHitTimer = 80;
         this.spawnHitEffect(this.dekuX, this.dekuY - 40);
-        if (this.playerHP <= 0) { this.phase = 'lose'; }
+        if (this.playerHP <= 0) this.phase = 'lose';
       }
       if (this.bossTimer <= 0) this.bossState = 'idle';
     } else if (this.bossState === 'stagger') {
@@ -314,11 +285,9 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
       if (this.bossTimer <= 0) this.bossState = 'idle';
     }
 
-    // Boss movement
     const targetX = this.dekuX + 140;
     this.shigX += (targetX - this.shigX) * 0.04 * dt;
 
-    // Particles
     for (const p of this.particles) {
       p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.1 * dt; p.alpha -= 0.03 * dt;
     }
@@ -326,12 +295,13 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
   }
 
   private spawnPunchEffect(x: number, y: number) {
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2;
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
       this.particles.push({
-        x, y, vx: Math.cos(a) * (3 + Math.random() * 4),
-        vy: Math.sin(a) * (3 + Math.random() * 4),
-        alpha: 1, c: i % 2 === 0 ? '#4ade80' : '#fff', r: 3 + Math.random() * 4, life: 1
+        x, y, vx: Math.cos(a) * (4 + Math.random() * 5),
+        vy: Math.sin(a) * (4 + Math.random() * 5),
+        alpha: 1, c: i % 3 === 0 ? '#ffffff' : i % 3 === 1 ? '#4ade80' : '#00e5ff',
+        r: 3 + Math.random() * 4, life: 1
       });
     }
   }
@@ -339,467 +309,477 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
   private spawnHitEffect(x: number, y: number) {
     for (let i = 0; i < 10; i++) {
       this.particles.push({
-        x, y,
-        vx: (Math.random() - 0.5) * 8,
-        vy: (Math.random() - 0.5) * 8 - 2,
-        alpha: 1, c: '#f87171', r: 3 + Math.random() * 3, life: 1
+        x, y, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 9 - 2,
+        alpha: 1, c: i % 2 === 0 ? '#f87171' : '#7c3aed', r: 3 + Math.random() * 4, life: 1
       });
     }
   }
 
-  private spawnPetal() {
-    this.petals.push({
-      x: Math.random() * CW, y: -10,
-      vx: (Math.random() - 0.5) * 1.5 - 0.5,
-      vy: 0.5 + Math.random() * 1,
-      rot: Math.random() * Math.PI * 2,
-      rotV: (Math.random() - 0.5) * 0.08,
-      alpha: 0.7 + Math.random() * 0.3,
-      size: 4 + Math.random() * 5
-    });
-  }
-
-  // ── Drawing ───────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDERING
+  // ═══════════════════════════════════════════════════════════════════════════
 
   private drawFrame() {
     const c = this.ctx;
-    const biome = this.currentBiome.name;
-
+    c.imageSmoothingEnabled = false;
     if (this.phase === 'start') { this.drawStart(c); return; }
-    if (this.phase === 'win')   { this.drawWin(c);   return; }
-    if (this.phase === 'lose')  { this.drawLose(c);  return; }
+    if (this.phase === 'win')   { this.drawEndScreen(c, true);  return; }
+    if (this.phase === 'lose')  { this.drawEndScreen(c, false); return; }
 
-    this.drawBg(c, biome);
-    this.drawTerrain(c, biome);
-    this.drawPetals(c);
+    this.drawDestroyedCity(c);
+    this.drawStoneBricks(c);
     this.drawParticles(c);
-    this.drawShigaraki(c);
-    this.drawDeku(c);
+    this.drawShigarakiSprite(c, this.shigX, this.shigY, this.phase === 'boss');
+    this.drawDekuSprite(c, this.dekuX, this.dekuY);
     this.drawHUD(c);
   }
 
-  // ── Background ────────────────────────────────────────────────────────────
+  // ── Destroyed city background ─────────────────────────────────────────────
 
-  private drawBg(c: CanvasRenderingContext2D, biome: string) {
-    // Sky gradient per biome
-    const skies: Record<string, [string, string]> = {
-      tokyo:       ['#1a1a2e', '#e94560'],
-      fuji:        ['#0f3460', '#b2dfdb'],
-      kyoto:       ['#fce4ec', '#f48fb1'],
-      countryside: ['#87ceeb', '#c8e6c9'],
-      osaka:       ['#1a237e', '#e8eaf6'],
-      finish:      ['#b71c1c', '#ff5722'],
-    };
-    const [s1, s2] = skies[biome] ?? ['#87ceeb', '#e0e0e0'];
+  private drawDestroyedCity(c: CanvasRenderingContext2D) {
+    const biome = this.currentBiome;
+
+    // Sky gradient
     const sky = c.createLinearGradient(0, 0, 0, CH);
-    sky.addColorStop(0, s1); sky.addColorStop(1, s2);
+    sky.addColorStop(0, biome.skyTop);
+    sky.addColorStop(1, biome.skyBot);
     c.fillStyle = sky; c.fillRect(0, 0, CW, CH);
 
-    const bx = -(this.bgOff % (CW * 2));
-    const mx = -(this.mgOff % (CW * 2));
+    // Animated clouds (very dark storm clouds)
+    this.drawStormClouds(c, biome.skyTop);
 
-    if (biome === 'tokyo') {
-      this.drawAnimeCity(c, bx, 60, 280, true);
-      this.drawAnimeCity(c, mx, 140, 180, false);
-      // Neon signs
-      this.drawNeon(c, mx);
-    } else if (biome === 'fuji') {
-      this.drawFuji(c, bx);
-      this.drawPineForest(c, mx, 220, 40, 5);
-    } else if (biome === 'kyoto') {
-      this.drawKyotoSky(c, bx);
-      this.drawPagoda(c, mx);
-    } else if (biome === 'countryside') {
-      this.drawCountryside(c, bx, mx);
-    } else if (biome === 'osaka') {
-      this.drawAnimeCity(c, bx, 80, 300, true);
-      this.drawCastle(c, mx);
-    } else if (biome === 'finish') {
-      this.drawFinalArena(c, bx);
+    // Far building layer (slowest scroll)
+    const bOff = -(this.bgOff % (CW * 3));
+    this.drawBuildingLayer(c, bOff,      '#111120', '#0a0a18', 90,  260, 45, 90);
+    this.drawBuildingLayer(c, bOff + CW, '#111120', '#0a0a18', 90,  260, 45, 90);
+    this.drawBuildingLayer(c, bOff + CW * 2, '#111120', '#0a0a18', 90, 260, 45, 90);
+
+    // Mid building layer
+    const mOff = -(this.mgOff % (CW * 2));
+    this.drawBuildingLayer(c, mOff,      '#1a1a30', '#141428', 70,  200, 35, 70);
+    this.drawBuildingLayer(c, mOff + CW, '#1a1a30', '#141428', 70,  200, 35, 70);
+
+    // Near rubble
+    this.drawRubbleLayer(c, -(this.mgOff * 1.6 % (CW * 2)));
+  }
+
+  private drawStormClouds(c: CanvasRenderingContext2D, baseColor: string) {
+    const offX = -(this.bgOff * 0.04 % CW);
+    const clouds = [
+      { x: 0,   y: 18, w: 180, h: 50 },
+      { x: 220, y: 8,  w: 220, h: 60 },
+      { x: 480, y: 22, w: 160, h: 44 },
+      { x: 680, y: 12, w: 200, h: 55 },
+    ];
+    for (const cl of clouds) {
+      const cx = (cl.x + offX + CW * 2) % (CW + cl.w) - cl.w / 2;
+      c.fillStyle = '#1a1a2e';
+      // Pixel-art blocky clouds
+      c.fillRect(cx + cl.w * 0.15, cl.y,           cl.w * 0.7, cl.h * 0.6);
+      c.fillRect(cx,               cl.y + cl.h * 0.3, cl.w,    cl.h * 0.7);
+      c.fillRect(cx + cl.w * 0.05, cl.y + cl.h * 0.1, cl.w * 0.9, cl.h * 0.8);
+      c.fillStyle = '#0e0e1e';
+      c.fillRect(cx,               cl.y + cl.h * 0.5, cl.w,    cl.h * 0.5);
     }
   }
 
-  private drawAnimeCity(c: CanvasRenderingContext2D, offX: number, minY: number, maxH: number, dark: boolean) {
-    let bx = offX % 700;
-    while (bx < CW + 150) {
-      const w = 30 + Math.abs(Math.sin(bx * 0.3)) * 60;
-      const h = maxH * 0.3 + Math.abs(Math.sin(bx * 0.17)) * maxH;
-      const gr = dark ? Math.floor(20 + Math.abs(Math.sin(bx * 0.5)) * 40) : Math.floor(140 + Math.abs(Math.sin(bx * 0.5)) * 60);
-      c.fillStyle = dark ? `rgb(${gr},${gr},${gr + 20})` : `rgb(${gr + 20},${gr},${gr + 30})`;
-      c.fillRect(bx, minY - h, w, h + CH);
-      // Windows — anime style (glowing)
-      c.fillStyle = dark ? 'rgba(255,220,80,0.3)' : 'rgba(180,220,255,0.4)';
-      for (let wy = minY - h + 8; wy < minY - 10; wy += 14)
-        for (let wx = bx + 4; wx < bx + w - 4; wx += 10)
-          c.fillRect(wx, wy, 6, 8);
-      bx += w + 6;
+  private drawBuildingLayer(
+    c: CanvasRenderingContext2D, offX: number,
+    fillCol: string, darkCol: string,
+    minH: number, maxH: number, minW: number, maxW: number
+  ) {
+    let bx = offX;
+    let seed = 0;
+    while (bx < CW + maxW) {
+      const s  = Math.abs(Math.sin(seed * 1.7 + 3.1));
+      const s2 = Math.abs(Math.sin(seed * 2.3 + 1.4));
+      const w  = minW + s * (maxW - minW);
+      const h  = minH + s2 * (maxH - minH);
+      const groundY = CH - 85;
+
+      // Main building body
+      c.fillStyle = fillCol;
+      c.fillRect(Math.round(bx), groundY - h, Math.round(w), h);
+
+      // Broken/jagged top (pixel art chunks)
+      c.fillStyle = darkCol;
+      for (let tx = bx; tx < bx + w; tx += 8) {
+        const crumbleH = Math.round(Math.abs(Math.sin(tx * 0.4 + seed)) * 28);
+        c.fillRect(Math.round(tx), groundY - h - crumbleH, 8, crumbleH + 4);
+      }
+
+      // Windows (dark grid, some lit amber)
+      for (let wy = groundY - h + 6; wy < groundY - 12; wy += 14) {
+        for (let wx = bx + 4; wx < bx + w - 4; wx += 10) {
+          const lit = Math.abs(Math.sin(wx * 0.5 + wy * 0.3 + seed)) > 0.75;
+          c.fillStyle = lit ? 'rgba(255,180,60,0.18)' : 'rgba(0,0,0,0.5)';
+          c.fillRect(Math.round(wx), wy, 6, 9);
+        }
+      }
+
+      bx += w + 4 + s * 20;
+      seed++;
     }
   }
 
-  private drawNeon(c: CanvasRenderingContext2D, offX: number) {
-    const signs = ['HERO', 'UA', '勝つ', '平和'];
-    const cols = ['#f0f', '#0ff', '#ff0', '#f80'];
-    for (let i = 0; i < 4; i++) {
-      const sx = ((offX + i * 200) % (CW + 200));
+  private drawRubbleLayer(c: CanvasRenderingContext2D, offX: number) {
+    const groundY = CH - 85;
+    c.fillStyle = '#151520';
+    // Concrete chunks
+    for (let i = 0; i < 12; i++) {
+      const rx = ((offX + i * 90 + Math.sin(i * 1.3) * 30) % (CW + 100) + CW + 100) % (CW + 100) - 50;
+      const rw = 20 + (i % 3) * 18;
+      const rh = 10 + (i % 4) * 8;
+      c.fillRect(Math.round(rx), groundY - rh, rw, rh);
+    }
+    // Broken metal beams (diagonal-ish, drawn as thin rects)
+    c.fillStyle = '#1e1e30';
+    for (let i = 0; i < 6; i++) {
+      const rx = ((offX * 1.2 + i * 140) % (CW + 120) + CW + 120) % (CW + 120) - 60;
       c.save();
-      c.shadowColor = cols[i]; c.shadowBlur = 15;
-      c.font = 'bold 14px sans-serif'; c.fillStyle = cols[i]; c.textAlign = 'center';
-      c.fillText(signs[i], sx, 120 + i * 20);
+      c.translate(rx, groundY - 5);
+      c.rotate(-0.2 + (i % 3) * 0.15);
+      c.fillRect(0, 0, 70, 5);
       c.restore();
     }
   }
 
-  private drawFuji(c: CanvasRenderingContext2D, offX: number) {
-    const cx = (offX % (CW * 3)) + CW * 0.5;
-    // Main body
-    c.fillStyle = '#37474f';
-    c.beginPath(); c.moveTo(cx - 260, CH); c.lineTo(cx, 60); c.lineTo(cx + 260, CH); c.closePath(); c.fill();
-    // Snow cap
-    c.fillStyle = '#fff';
-    c.beginPath(); c.moveTo(cx - 70, 140); c.lineTo(cx, 60); c.lineTo(cx + 70, 140);
-    c.lineTo(cx + 50, 150); c.lineTo(cx - 50, 150); c.closePath(); c.fill();
-    // Clouds
-    for (let i = 0; i < 3; i++) {
-      const ox = ((offX * 0.3 + i * 220) % (CW + 100));
-      this.drawAnimeCloud(c, ox, 80 + i * 25);
-    }
-  }
+  // ── Stone brick ground ────────────────────────────────────────────────────
 
-  private drawAnimeCloud(c: CanvasRenderingContext2D, x: number, y: number) {
-    c.fillStyle = 'rgba(255,255,255,0.85)';
-    c.beginPath(); c.arc(x, y, 22, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(x + 25, y + 5, 18, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(x - 20, y + 5, 16, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(x + 5, y + 12, 20, 0, Math.PI * 2); c.fill();
-  }
-
-  private drawPineForest(c: CanvasRenderingContext2D, offX: number, baseY: number, size: number, n: number) {
-    for (let i = 0; i < Math.ceil(CW / 50) + 2; i++) {
-      const tx = ((offX + i * 50) % (CW + 60));
-      c.fillStyle = '#1b5e20';
-      c.beginPath(); c.moveTo(tx, baseY); c.lineTo(tx + size / 2, baseY - size * 1.5); c.lineTo(tx + size, baseY); c.closePath(); c.fill();
-      c.beginPath(); c.moveTo(tx + 5, baseY - size * 0.8); c.lineTo(tx + size / 2, baseY - size * 2.1); c.lineTo(tx + size - 5, baseY - size * 0.8); c.closePath(); c.fill();
-    }
-  }
-
-  private drawKyotoSky(c: CanvasRenderingContext2D, offX: number) {
-    // Cherry blossom trees silhouette
-    for (let i = 0; i < 5; i++) {
-      const tx = ((offX + i * 160) % (CW + 180));
-      c.fillStyle = '#ad1457';
-      c.fillRect(tx + 18, 200, 6, 80);
-      c.beginPath(); c.arc(tx + 21, 195, 30, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#e91e63';
-      c.beginPath(); c.arc(tx + 5, 185, 20, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.arc(tx + 38, 188, 18, 0, Math.PI * 2); c.fill();
-    }
-  }
-
-  private drawPagoda(c: CanvasRenderingContext2D, offX: number) {
-    const px = ((offX * 0.6 + CW * 0.6) % (CW + 120));
-    const py = 160;
-    // Floors
-    const floors = [[60, 12], [50, 12], [40, 12], [30, 12]];
-    c.fillStyle = '#b71c1c';
-    floors.forEach(([w, h], i) => {
-      const fy = py + i * (h + 4);
-      c.fillRect(px - w / 2, fy, w, h);
-      // Roof
-      c.beginPath(); c.moveTo(px - w / 2 - 8, fy); c.lineTo(px, fy - 12); c.lineTo(px + w / 2 + 8, fy); c.closePath(); c.fill();
-    });
-    c.fillStyle = '#37474f'; c.fillRect(px - 4, py + floors.length * 16, 8, 80);
-  }
-
-  private drawCountryside(c: CanvasRenderingContext2D, bx: number, mx: number) {
-    c.fillStyle = '#81c784'; c.fillRect(0, 220, CW, CH - 220);
-    // Rice paddies
-    c.fillStyle = 'rgba(100,180,220,0.35)';
-    for (let rx = (mx % 120); rx < CW; rx += 120)
-      c.fillRect(rx, 240, 100, 40);
-    // Far hills
-    c.fillStyle = '#388e3c';
-    c.beginPath(); c.moveTo(0, CH);
-    for (let x = bx; x < CW + 100; x += 1)
-      c.lineTo(x, 230 - 50 * Math.sin((x - bx) / 280));
-    c.lineTo(CW, CH); c.fill();
-  }
-
-  private drawCastle(c: CanvasRenderingContext2D, offX: number) {
-    const cx = ((offX * 0.5 + CW * 0.7) % (CW + 160));
-    // Osaka castle silhouette
-    c.fillStyle = '#3949ab';
-    c.fillRect(cx - 35, 160, 70, 120);
-    c.fillRect(cx - 50, 200, 100, 80);
-    c.beginPath(); c.moveTo(cx - 60, 200); c.lineTo(cx, 140); c.lineTo(cx + 60, 200); c.closePath(); c.fill();
-    c.fillStyle = '#1a237e';
-    c.beginPath(); c.moveTo(cx - 45, 160); c.lineTo(cx, 120); c.lineTo(cx + 45, 160); c.closePath(); c.fill();
-    c.fillStyle = '#ffd54f';
-    c.beginPath(); c.arc(cx, 117, 6, 0, Math.PI * 2); c.fill();
-  }
-
-  private drawFinalArena(c: CanvasRenderingContext2D, bx: number) {
-    // Dramatic red sky with cracks
-    c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(0, 0, CW, CH);
-    c.strokeStyle = '#ff5722'; c.lineWidth = 2;
-    for (let i = 0; i < 5; i++) {
-      const sx = (bx + i * 180) % CW;
-      c.beginPath(); c.moveTo(sx, 0);
-      c.lineTo(sx + 20, 80); c.lineTo(sx + 10, 160); c.lineTo(sx + 35, 240);
-      c.stroke();
-    }
-  }
-
-  // ── Terrain ───────────────────────────────────────────────────────────────
-
-  private drawTerrain(c: CanvasRenderingContext2D, biome: string) {
+  private drawStoneBricks(c: CanvasRenderingContext2D) {
     if (this.terrain.length < 2) return;
-    const cols: Record<string, [string, string]> = {
-      tokyo:       ['#546e7a', '#37474f'],
-      fuji:        ['#4caf50', '#388e3c'],
-      kyoto:       ['#66bb6a', '#43a047'],
-      countryside: ['#81c784', '#66bb6a'],
-      osaka:       ['#78909c', '#546e7a'],
-      finish:      ['#b71c1c', '#7f0000'],
-    };
-    const [gc, gc2] = cols[biome] ?? ['#4caf50', '#388e3c'];
-    c.fillStyle = gc;
-    c.beginPath(); c.moveTo(this.terrain[0].x, CH);
+
+    // Terrain fill
+    c.fillStyle = '#101010';
+    c.beginPath();
+    c.moveTo(this.terrain[0].x, CH);
     for (const p of this.terrain) c.lineTo(p.x, p.y);
     c.lineTo(this.terrain[this.terrain.length - 1].x, CH);
     c.closePath(); c.fill();
-    c.strokeStyle = gc2; c.lineWidth = 3;
-    c.beginPath(); c.moveTo(this.terrain[0].x, this.terrain[0].y);
+
+    // Stone brick tiles
+    const BW = 46, BH = 18;
+    const scrollX = Math.floor(this.worldX * 0.5) % (BW * 2);
+    const groundTopApprox = this.dekuGY;
+
+    for (let row = 0; row <= Math.ceil((CH - groundTopApprox) / BH) + 2; row++) {
+      const rowOff = row % 2 === 0 ? -scrollX : (-scrollX + BW);
+      for (let col = -1; col <= Math.ceil(CW / BW) + 1; col++) {
+        const bx = Math.round(col * BW - ((rowOff % (BW * 2)) + BW * 2) % (BW * 2));
+        const by = Math.round(groundTopApprox + row * BH);
+        if (by > CH) continue;
+        c.fillStyle = '#252530';
+        c.fillRect(bx + 1, by + 1, BW - 2, BH - 2);
+        c.fillStyle = '#2e2e3a'; // highlight edge
+        c.fillRect(bx + 1, by + 1, BW - 2, 2);
+        c.fillStyle = '#18181e'; // shadow edge
+        c.fillRect(bx + 1, by + BH - 3, BW - 2, 2);
+      }
+    }
+
+    // Surface edge line
+    c.strokeStyle = '#3a3a50'; c.lineWidth = 2;
+    c.beginPath();
+    c.moveTo(this.terrain[0].x, this.terrain[0].y);
     for (const p of this.terrain) c.lineTo(p.x, p.y);
     c.stroke();
-  }
 
-  private drawPetals(c: CanvasRenderingContext2D) {
-    for (const p of this.petals) {
-      c.save(); c.globalAlpha = p.alpha;
-      c.translate(p.x, p.y); c.rotate(p.rot);
-      c.fillStyle = '#f48fb1';
-      c.beginPath(); c.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI * 2); c.fill();
-      c.restore();
+    // Cracks
+    c.strokeStyle = '#0a0a10'; c.lineWidth = 1;
+    for (let i = 0; i < 6; i++) {
+      const crx = ((this.worldX * 0.3 + i * 130) % CW + CW) % CW;
+      const cry = groundTopApprox + 6 + (i % 3) * 12;
+      c.beginPath();
+      c.moveTo(crx, cry);
+      c.lineTo(crx + 12, cry + 7);
+      c.lineTo(crx + 7,  cry + 16);
+      c.stroke();
     }
   }
+
+  // ── Particles ────────────────────────────────────────────────────────────
 
   private drawParticles(c: CanvasRenderingContext2D) {
     for (const p of this.particles) {
-      c.save(); c.globalAlpha = Math.max(0, p.alpha);
-      c.shadowColor = p.c; c.shadowBlur = 8;
-      c.fillStyle = p.c; c.beginPath(); c.arc(p.x, p.y, p.r, 0, Math.PI * 2); c.fill();
+      c.save();
+      c.globalAlpha = Math.max(0, p.alpha);
+      c.shadowColor = p.c; c.shadowBlur = 10;
+      c.fillStyle = p.c;
+      // Pixel-art square particles
+      const sz = Math.ceil(p.r);
+      c.fillRect(Math.round(p.x - sz / 2), Math.round(p.y - sz / 2), sz, sz);
       c.restore();
     }
   }
 
-  // ── Characters ────────────────────────────────────────────────────────────
+  // ── Deku pixel-art sprite ─────────────────────────────────────────────────
 
-  private drawDeku(c: CanvasRenderingContext2D) {
-    const x = this.dekuX, y = this.dekuY;
-    const t = this.animT;
-    const boosting = this.boosting;
-    const bossPhase = this.phase === 'boss';
+  private drawDekuSprite(c: CanvasRenderingContext2D, x: number, y: number) {
+    const ps = PS;
+    // Sprite: 16 art-px wide × 29 art-px tall; feet at (x, y)
+    const bx = Math.round(x - 8 * ps);
+    const by = Math.round(y - 29 * ps);
+
+    const r = (col: number, row: number, w: number, h: number, color: string) => {
+      c.fillStyle = color;
+      c.fillRect(bx + col * ps, by + row * ps, w * ps, h * ps);
+    };
+
     const hitFlash = this.playerHitTimer > 0 && Math.floor(this.playerHitTimer / 5) % 2 === 0;
-
-    c.save();
-    if (hitFlash) { c.globalAlpha = 0.4; }
-    if (boosting || bossPhase) { c.shadowColor = '#4ade80'; c.shadowBlur = 25; }
-
-    const run = Math.sin(t * 0.45);
+    if (hitFlash) { c.save(); c.globalAlpha = 0.3; }
 
     // Green lightning aura when boosting
-    if (boosting) {
-      c.strokeStyle = '#4ade80'; c.lineWidth = 1.5; c.globalAlpha = 0.7;
-      for (let i = 0; i < 4; i++) {
-        const ax = x + (Math.random() - 0.5) * 50;
-        const ay = y - 30 + (Math.random() - 0.5) * 60;
-        c.beginPath(); c.moveTo(ax, ay);
-        c.lineTo(ax + (Math.random() - 0.5) * 20, ay + (Math.random() - 0.5) * 20);
+    if (this.boosting) {
+      c.save();
+      c.shadowColor = '#00e5ff'; c.shadowBlur = 22;
+      c.strokeStyle = '#00e5ff'; c.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const lx = bx - 6 + Math.random() * (16 * ps + 12);
+        const ly = by + Math.random() * 29 * ps;
+        c.beginPath();
+        c.moveTo(lx, ly);
+        c.lineTo(lx + (Math.random() - 0.5) * 24, ly + (Math.random() - 0.5) * 24);
         c.stroke();
       }
-      c.globalAlpha = hitFlash ? 0.4 : 1;
-      c.shadowColor = '#4ade80'; c.shadowBlur = 25;
-    }
-
-    // Body — Deku green suit
-    const bodyX = x, bodyY = y - 55;
-
-    // Legs
-    const lleg = run * 14;
-    c.strokeStyle = '#1b5e20'; c.lineWidth = 6; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(bodyX, bodyY + 28); c.lineTo(bodyX - 8 + lleg, bodyY + 50); c.lineTo(bodyX - 6 + lleg, bodyY + 68); c.stroke();
-    c.beginPath(); c.moveTo(bodyX, bodyY + 28); c.lineTo(bodyX + 8 - lleg, bodyY + 50); c.lineTo(bodyX + 6 - lleg, bodyY + 68); c.stroke();
-    // Shoes — red
-    c.fillStyle = '#c62828';
-    c.beginPath(); c.ellipse(bodyX - 6 + lleg, bodyY + 70, 9, 5, 0, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(bodyX + 6 - lleg, bodyY + 70, 9, 5, 0, 0, Math.PI * 2); c.fill();
-
-    // Torso — green hero suit with white cross
-    c.fillStyle = '#2e7d32';
-    c.beginPath(); c.roundRect(bodyX - 13, bodyY, 26, 30, 4); c.fill();
-    c.fillStyle = '#fff';
-    c.fillRect(bodyX - 2, bodyY + 2, 4, 14);
-    c.fillRect(bodyX - 8, bodyY + 6, 16, 4);
-
-    // Cape — red
-    const capeOff = Math.sin(t * 0.35) * 6;
-    c.fillStyle = '#c62828';
-    c.beginPath();
-    c.moveTo(bodyX - 12, bodyY + 4);
-    c.lineTo(bodyX - 20, bodyY + 10 + capeOff);
-    c.lineTo(bodyX - 16, bodyY + 32 + capeOff);
-    c.lineTo(bodyX - 10, bodyY + 28);
-    c.closePath(); c.fill();
-
-    // Arms
-    const aoff = Math.sin(t * 0.45 + Math.PI) * 10;
-    c.strokeStyle = '#2e7d32'; c.lineWidth = 5;
-    c.beginPath(); c.moveTo(bodyX - 10, bodyY + 5); c.lineTo(bodyX - 18, bodyY + 22 + aoff); c.stroke();
-    c.beginPath(); c.moveTo(bodyX + 10, bodyY + 5); c.lineTo(bodyX + 18, bodyY + 22 - aoff); c.stroke();
-    // Gloves — green glowing
-    c.fillStyle = boosting ? '#4ade80' : '#1b5e20';
-    c.beginPath(); c.arc(bodyX - 18, bodyY + 22 + aoff, 5, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(bodyX + 18, bodyY + 22 - aoff, 5, 0, Math.PI * 2); c.fill();
-
-    // Head
-    c.fillStyle = '#fde68a';
-    c.beginPath(); c.arc(bodyX, bodyY - 12, 13, 0, Math.PI * 2); c.fill();
-
-    // Bunny-ear mask (Deku's helmet)
-    c.fillStyle = '#2e7d32';
-    c.beginPath(); c.arc(bodyX, bodyY - 14, 14, Math.PI, 0); c.fill();
-    // Ears
-    c.beginPath(); c.moveTo(bodyX - 10, bodyY - 25); c.lineTo(bodyX - 14, bodyY - 42); c.lineTo(bodyX - 6, bodyY - 25); c.closePath(); c.fill();
-    c.beginPath(); c.moveTo(bodyX + 10, bodyY - 25); c.lineTo(bodyX + 14, bodyY - 42); c.lineTo(bodyX + 6, bodyY - 25); c.closePath(); c.fill();
-    // Eyes — large anime style
-    c.fillStyle = '#fff';
-    c.beginPath(); c.ellipse(bodyX - 5, bodyY - 14, 5, 6, 0, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(bodyX + 5, bodyY - 14, 5, 6, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#1565c0';
-    c.beginPath(); c.arc(bodyX - 5, bodyY - 14, 3, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(bodyX + 5, bodyY - 14, 3, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#fff';
-    c.beginPath(); c.arc(bodyX - 4, bodyY - 15, 1, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(bodyX + 6, bodyY - 15, 1, 0, Math.PI * 2); c.fill();
-
-    // Speed lines when boosting
-    if (boosting) {
-      c.strokeStyle = 'rgba(74,222,128,0.6)'; c.lineWidth = 2;
-      for (let i = 0; i < 5; i++) {
-        const ly = y - 60 + i * 18;
-        const len = 25 + Math.random() * 35;
-        c.beginPath(); c.moveTo(x - 20, ly); c.lineTo(x - 20 - len, ly); c.stroke();
-      }
-    }
-
-    c.restore();
-  }
-
-  private drawShigaraki(c: CanvasRenderingContext2D) {
-    const x = this.shigX, y = this.shigY;
-    const t = this.animT;
-    const stagger = this.bossState === 'stagger';
-    const attacking = this.bossState === 'attack';
-
-    c.save();
-    c.shadowColor = '#7c3aed'; c.shadowBlur = 20;
-
-    const run = Math.sin(t * 0.43);
-    const bodyX = x, bodyY = y - 55;
-
-    // Decay aura
-    c.globalAlpha = 0.25;
-    c.fillStyle = '#7c3aed';
-    c.beginPath(); c.arc(x, y - 35, 40, 0, Math.PI * 2); c.fill();
-    c.globalAlpha = stagger ? 0.6 : 1;
-
-    // Legs — torn dark grey
-    c.strokeStyle = '#37474f'; c.lineWidth = 6; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(bodyX, bodyY + 28); c.lineTo(bodyX - 8 + run * 14, bodyY + 50); c.lineTo(bodyX - 6 + run * 14, bodyY + 68); c.stroke();
-    c.beginPath(); c.moveTo(bodyX, bodyY + 28); c.lineTo(bodyX + 8 - run * 14, bodyY + 50); c.lineTo(bodyX + 6 - run * 14, bodyY + 68); c.stroke();
-    c.fillStyle = '#212121';
-    c.beginPath(); c.ellipse(bodyX - 6 + run * 14, bodyY + 70, 8, 4, 0, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(bodyX + 6 - run * 14, bodyY + 70, 8, 4, 0, 0, Math.PI * 2); c.fill();
-
-    // Torso — torn black jacket
-    c.fillStyle = '#212121';
-    c.beginPath(); c.roundRect(bodyX - 13, bodyY, 26, 30, 3); c.fill();
-    // Torn edges
-    c.strokeStyle = '#7c3aed'; c.lineWidth = 1.5;
-    for (let i = 0; i < 5; i++) {
-      c.beginPath();
-      c.moveTo(bodyX - 13 + i * 6, bodyY + 30);
-      c.lineTo(bodyX - 10 + i * 6 + (Math.random() - 0.5) * 4, bodyY + 37);
-      c.stroke();
-    }
-
-    // Arms — right arm raised when attacking
-    const aOff = Math.sin(t * 0.43 + Math.PI) * 10;
-    const rightY = attacking ? bodyY - 5 : bodyY + 22 - aOff;
-    c.strokeStyle = '#37474f'; c.lineWidth = 5;
-    c.beginPath(); c.moveTo(bodyX - 10, bodyY + 5); c.lineTo(bodyX - 18, bodyY + 22 + aOff); c.stroke();
-    c.beginPath(); c.moveTo(bodyX + 10, bodyY + 5); c.lineTo(bodyX + 22, rightY); c.stroke();
-    // Hands — decay effect (purple glow)
-    c.fillStyle = '#7c3aed';
-    c.beginPath(); c.arc(bodyX - 18, bodyY + 22 + aOff, 6, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(bodyX + 22, rightY, 6, 0, Math.PI * 2); c.fill();
-    if (attacking) {
-      c.globalAlpha = 0.5;
-      c.beginPath(); c.arc(bodyX + 22, rightY, 14, 0, Math.PI * 2); c.fill();
-      c.globalAlpha = stagger ? 0.6 : 1;
-    }
-
-    // Head
-    c.fillStyle = '#d7ccc8';
-    c.beginPath(); c.arc(bodyX, bodyY - 12, 13, 0, Math.PI * 2); c.fill();
-
-    // Messy pale blue hair
-    c.fillStyle = '#90caf9';
-    c.beginPath(); c.arc(bodyX, bodyY - 22, 15, Math.PI, 0); c.fill();
-    // Spiky bits
-    for (let i = -2; i <= 2; i++) {
-      c.beginPath();
-      c.moveTo(bodyX + i * 6 - 3, bodyY - 25);
-      c.lineTo(bodyX + i * 6, bodyY - 35 + Math.abs(i) * 3);
-      c.lineTo(bodyX + i * 6 + 3, bodyY - 25);
-      c.closePath(); c.fill();
-    }
-
-    // Villain mask (hand on face feel — just dark markings)
-    c.fillStyle = '#7c3aed';
-    c.beginPath(); c.arc(bodyX - 4, bodyY - 13, 4, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(bodyX + 4, bodyY - 13, 4, 0, Math.PI * 2); c.fill();
-
-    // Anime eyes — red/sinister
-    c.fillStyle = '#fff';
-    c.beginPath(); c.ellipse(bodyX - 5, bodyY - 13, 5, 5.5, 0, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(bodyX + 5, bodyY - 13, 5, 5.5, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#c62828';
-    c.beginPath(); c.arc(bodyX - 5, bodyY - 13, 3, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(bodyX + 5, bodyY - 13, 3, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#fff';
-    c.beginPath(); c.arc(bodyX - 4, bodyY - 14, 1, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.arc(bodyX + 6, bodyY - 14, 1, 0, Math.PI * 2); c.fill();
-
-    // Stagger effect
-    if (stagger) {
-      c.save(); c.globalAlpha = 0.8;
-      c.strokeStyle = '#4ade80'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(x - 20, y - 60); c.lineTo(x + 30, y - 30); c.stroke();
-      c.beginPath(); c.moveTo(x - 25, y - 40); c.lineTo(x + 15, y - 70); c.stroke();
       c.restore();
     }
 
-    // HP bars in boss phase
-    if (this.phase === 'boss') {
-      const rem = BOSS_PUNCHES - this.bossHits;
-      c.fillStyle = 'rgba(0,0,0,0.6)';
-      c.beginPath(); c.roundRect(x - 35, y - 90, 70, 10, 4); c.fill();
-      c.fillStyle = '#c62828';
-      c.beginPath(); c.roundRect(x - 35, y - 90, 70 * (rem / BOSS_PUNCHES), 10, 4); c.fill();
+    const runF = Math.floor(this.animT * 0.18) % 2; // 0 or 1
+
+    // ── HAIR (spiky green anime hair) ──
+    r(3,  0, 10, 1, '#0d2e0d');      // top spiky outline
+    r(2,  1, 12, 1, '#1b5e20');
+    r(1,  2, 14, 2, '#1b5e20');
+    r(3,  2, 10, 2, '#2e7d32');      // lighter inner
+    r(5,  3,  6, 1, '#388e3c');      // highlight
+    r(1,  4,  2, 1, '#1b5e20');      // left wing
+    r(13, 4,  2, 1, '#1b5e20');      // right wing
+
+    // ── FACE ──
+    r(2,  4, 12, 6, '#fde68a');      // skin
+    r(2,  4,  1, 5, '#1a1a1a');      // left outline
+    r(13, 4,  1, 5, '#1a1a1a');      // right outline
+    r(2,  9, 12, 1, '#d4a827');      // chin shadow
+
+    // Left eye (large anime)
+    r(3, 5, 4, 4, '#ffffff');
+    r(4, 6, 2, 2, '#1565c0');
+    r(4, 7, 1, 1, '#0a2a6e');
+    r(3, 5, 1, 1, '#b0c8ff');        // shine
+    r(3, 8, 4, 1, '#000000');        // lash
+    r(3, 5, 4, 1, '#1a1a1a');        // top lash
+
+    // Right eye
+    r(9, 5, 4, 4, '#ffffff');
+    r(10, 6, 2, 2, '#1565c0');
+    r(10, 7, 1, 1, '#0a2a6e');
+    r(9, 5,  1, 1, '#b0c8ff');
+    r(9, 8,  4, 1, '#000000');
+    r(9, 5,  4, 1, '#1a1a1a');
+
+    // Cheek freckles (Deku's freckles)
+    r(3,  8, 1, 1, '#e89020');
+    r(12, 8, 1, 1, '#e89020');
+    // Nose
+    r(7,  8, 2, 1, '#d4a020');
+
+    // ── NECK ──
+    r(6, 10, 4, 1, '#fde68a');
+
+    // ── TORSO (green hero suit) ──
+    r(2, 11, 12, 8, '#2e7d32');
+    r(2, 11,  1, 7, '#1b5e20');      // left edge
+    r(13,11,  1, 7, '#1b5e20');      // right edge
+    r(2, 18, 12, 1, '#1b5e20');      // bottom
+    // White cross reinforcement
+    r(7, 12, 2, 6, '#f0f0f0');       // vertical
+    r(4, 15, 8, 2, '#f0f0f0');       // horizontal
+    // Belt
+    r(2, 19, 12, 2, '#111a11');
+
+    // ── ARMS ──
+    // Back arm (left side of screen)
+    r(-2, 12, 3, 6, '#2e7d32');
+    r(-2, 16, 3, 2, '#c8a878');      // bandage
+    r(-2, 17, 3, 1, '#a08050');
+    // Back fist
+    r(-3, 18, 5, 3, '#e8e8e8');
+    r(-3, 20, 5, 1, '#c0c0c0');
+
+    // Front arm (right side)
+    r(15, 11, 3, 6, '#2e7d32');
+    r(15, 15, 3, 2, '#c8a878');
+    r(15, 16, 3, 1, '#a08050');
+    // Front fist (extended forward)
+    r(15, 17, 5, 3, '#e8e8e8');
+    r(15, 19, 5, 1, '#c0c0c0');
+    // Green glow on fists when boosting
+    if (this.boosting) {
+      c.save(); c.shadowColor = '#00e5ff'; c.shadowBlur = 14;
+      c.fillStyle = 'rgba(0,229,255,0.4)';
+      c.fillRect(bx + 15 * ps, by + 17 * ps, 5 * ps, 3 * ps);
+      c.fillRect(bx + (-3) * ps, by + 18 * ps, 5 * ps, 3 * ps);
+      c.restore();
     }
 
+    // ── LEGS (run animation) ──
+    const lOff = runF === 0 ? -1 : 1;
+
+    // Left leg
+    r(2,         21, 4, 4, '#1b5e20');
+    r(2 + lOff,  24, 3, 3, '#145214');
+    // Left shoe (red)
+    r(1 + lOff,  27, 5, 1, '#c62828');
+    r(0 + lOff,  28, 6, 1, '#8b0000');
+
+    // Right leg
+    r(10,        21, 4, 4, '#1b5e20');
+    r(10 - lOff, 24, 3, 3, '#145214');
+    // Right shoe
+    r(9  - lOff, 27, 5, 1, '#c62828');
+    r(8  - lOff, 28, 6, 1, '#8b0000');
+
+    // Speed lines (horizontal streaks left of Deku when boosting)
+    if (this.boosting) {
+      c.save(); c.strokeStyle = 'rgba(0,229,255,0.55)'; c.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const ly = by + (5 + i * 14) * ps / 2;
+        const len = 20 + Math.random() * 40;
+        c.beginPath(); c.moveTo(bx - 4, ly); c.lineTo(bx - 4 - len, ly); c.stroke();
+      }
+      c.restore();
+    }
+
+    if (hitFlash) c.restore();
+  }
+
+  // ── Shigaraki pixel-art sprite ────────────────────────────────────────────
+
+  private drawShigarakiSprite(c: CanvasRenderingContext2D, x: number, y: number, flipLeft = false) {
+    const ps = PS;
+    const bx = Math.round(x - 8 * ps);
+    const by = Math.round(y - 29 * ps);
+    const W  = 16; // sprite width in art px
+
+    const r = (col: number, row: number, w: number, h: number, color: string) => {
+      c.fillStyle = color;
+      const drawCol = flipLeft ? W - col - w : col;
+      c.fillRect(bx + drawCol * ps, by + row * ps, w * ps, h * ps);
+    };
+
+    const stagger  = this.bossState === 'stagger';
+    const attack   = this.bossState === 'attack';
+    const runF     = Math.floor(this.animT * 0.17) % 2;
+
+    if (stagger) { c.save(); c.globalAlpha = 0.65; }
+
+    // Purple decay aura
+    c.save(); c.globalAlpha = 0.22;
+    c.fillStyle = '#7c3aed';
+    c.fillRect(bx - 6, by + 8 * ps, W * ps + 12, 18 * ps);
     c.restore();
+
+    // ── HAIR (white/light blue spiky) ──
+    r(2, 0, 12, 1, '#78909c');       // outer spikes
+    r(1, 1, 14, 2, '#b0bec5');
+    r(3, 1, 10, 3, '#cfd8dc');       // lighter
+    r(5, 2,  6, 1, '#eceff1');       // brightest highlight
+    // Extra spiky bits on top
+    r(3, 0, 2, 1, '#90a4ae');
+    r(7, 0, 2, 1, '#90a4ae');
+    r(11,0, 2, 1, '#90a4ae');
+    r(5,-1, 2, 1, '#b0bec5');
+
+    // ── FACE (pale/ashen) ──
+    r(2, 4, 12, 6, '#c5b8b0');
+    r(2, 4,  1, 5, '#1a1a1a');
+    r(13,4,  1, 5, '#1a1a1a');
+    r(2, 9, 12, 1, '#a09090');
+
+    // Left eye (villain red)
+    r(3, 5, 4, 4, '#ffffff');
+    r(4, 6, 2, 2, '#b71c1c');
+    r(4, 7, 1, 1, '#7f0000');
+    r(3, 5, 1, 1, '#ff9999');        // evil red shine
+    r(3, 8, 4, 1, '#1a1a1a');
+    r(3, 5, 4, 1, '#1a1a1a');
+
+    // Right eye
+    r(9, 5, 4, 4, '#ffffff');
+    r(10,6, 2, 2, '#b71c1c');
+    r(10,7, 1, 1, '#7f0000');
+    r(9, 5, 1, 1, '#ff9999');
+    r(9, 8, 4, 1, '#1a1a1a');
+    r(9, 5, 4, 1, '#1a1a1a');
+
+    // Hand-marks on face (Shigaraki's quirk markings)
+    c.save(); c.globalAlpha = 0.45; c.fillStyle = '#7c3aed';
+    c.fillRect(bx + 2 * ps, by + 5 * ps, ps, 4 * ps);
+    c.fillRect(bx + 13 * ps, by + 5 * ps, ps, 4 * ps);
+    c.restore();
+
+    // ── NECK ──
+    r(6, 10, 4, 1, '#c5b8b0');
+
+    // ── BODY (dark navy coat) ──
+    r(0, 11, 16, 10, '#1a237e');
+    r(0, 11,  1,  9, '#111870');     // left edge
+    r(15,11,  1,  9, '#111870');     // right edge
+    r(0, 20, 16,  1, '#111870');     // bottom
+    // Hood/collar
+    r(5, 11,  6,  2, '#283593');
+    r(6, 11,  4,  3, '#1a237e');
+    // Coat seam detail
+    r(7, 13,  2,  7, '#141d6e');
+
+    // ── ARMS ──
+    // Back arm (left/right depends on flipLeft)
+    r(-3, 12, 4, 7, '#1a237e');
+    r(-3, 17, 4, 4, '#0d0d0d');      // dark hand
+    // Decay glow on hand
+    c.save(); c.globalAlpha = 0.6; c.shadowColor = '#7c3aed'; c.shadowBlur = 12;
+    c.fillStyle = '#7c3aed';
+    const hcol = flipLeft ? W - (-3) - 4 : -3;
+    c.fillRect(bx + hcol * ps, by + 17 * ps, 4 * ps, ps);
+    c.restore();
+
+    // Front arm — raised when attacking
+    const frontArmRow = attack ? 9 : 12;
+    r(15, frontArmRow, 4, 7 + (12 - frontArmRow), '#1a237e');
+    r(15, frontArmRow + 6, 5, 4, '#0d0d0d');
+    c.save(); c.globalAlpha = attack ? 0.9 : 0.55; c.shadowColor = '#7c3aed'; c.shadowBlur = attack ? 24 : 10;
+    c.fillStyle = '#7c3aed';
+    const fhcol = flipLeft ? W - 15 - 5 : 15;
+    c.fillRect(bx + fhcol * ps, by + (frontArmRow + 6) * ps, 5 * ps, ps);
+    if (attack) {
+      c.globalAlpha = 0.35;
+      c.fillRect(bx + fhcol * ps - 6, by + (frontArmRow + 4) * ps, 7 * ps, 5 * ps);
+    }
+    c.restore();
+
+    // ── LEGS ──
+    const lOff = runF === 0 ? -1 : 1;
+
+    r(2,          21, 4, 4, '#141870');
+    r(2 - lOff,   24, 3, 3, '#0e1060');
+    r(1 - lOff,   27, 5, 1, '#0a0a20');
+    r(0 - lOff,   28, 6, 1, '#060610');
+
+    r(10,         21, 4, 4, '#141870');
+    r(10 + lOff,  24, 3, 3, '#0e1060');
+    r(9  + lOff,  27, 5, 1, '#0a0a20');
+    r(8  + lOff,  28, 6, 1, '#060610');
+
+    // Stagger effect (X marks)
+    if (stagger) {
+      c.restore();
+      c.save(); c.strokeStyle = '#4ade80'; c.lineWidth = 3; c.globalAlpha = 0.85;
+      c.beginPath(); c.moveTo(x - 22, y - 60); c.lineTo(x + 18, y - 20); c.stroke();
+      c.beginPath(); c.moveTo(x + 18, y - 60); c.lineTo(x - 22, y - 20); c.stroke();
+      c.restore();
+    } else if (stagger) {
+      c.restore();
+    }
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────
@@ -810,168 +790,261 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
   }
 
   private drawRunHUD(c: CanvasRenderingContext2D) {
-    // Distance bar
-    const bw = 340, bh = 26, bx = CW / 2 - bw / 2, by = 8;
-    c.fillStyle = 'rgba(0,0,0,0.6)'; c.beginPath(); c.roundRect(bx, by, bw, bh, 8); c.fill();
-    const g = c.createLinearGradient(bx, 0, bx + bw, 0);
-    g.addColorStop(0, '#4ade80'); g.addColorStop(1, '#22c55e');
-    c.fillStyle = g;
-    c.beginPath(); c.roundRect(bx + 2, by + 2, Math.max(0, (this.km / TOTAL_KM) * (bw - 4)), bh - 4, 6); c.fill();
-    c.fillStyle = '#fff'; c.font = 'bold 12px sans-serif'; c.textAlign = 'center';
-    c.fillText(`🏃 ${this.km.toFixed(1)} / ${TOTAL_KM} km`, CW / 2, by + 18);
+    // ── Deku panel (top-left) ──
+    c.fillStyle = 'rgba(0,0,0,0.82)';
+    c.fillRect(6, 6, 220, 64);
+    c.strokeStyle = '#4ade80'; c.lineWidth = 2;
+    c.strokeRect(6, 6, 220, 64);
 
-    // Biome
-    c.fillStyle = 'rgba(0,0,0,0.6)'; c.beginPath(); c.roundRect(8, 8, 160, 26, 8); c.fill();
-    c.fillStyle = '#fff'; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
-    c.fillText(this.currentBiome.label, 18, 25);
+    // Portrait background
+    c.fillStyle = '#1b5e20'; c.fillRect(10, 10, 48, 56);
+    this.drawDekuPortrait(c, 10, 10);
 
-    // Boost bar
-    const bready = this.boostCooldown <= 0;
-    const bactive = this.boostFrames > 0;
-    c.fillStyle = 'rgba(0,0,0,0.6)'; c.beginPath(); c.roundRect(CW - 145, 8, 135, 26, 8); c.fill();
-    const fill = bactive
-      ? (this.boostFrames / BOOST_DURATION) * 131
-      : bready ? 131
-      : (1 - this.boostCooldown / BOOST_COOLDOWN) * 131;
-    c.fillStyle = bactive ? '#4ade80' : bready ? '#22c55e' : '#475569';
-    c.shadowColor = bactive ? '#4ade80' : 'transparent'; c.shadowBlur = bactive ? 12 : 0;
-    c.beginPath(); c.roundRect(CW - 143, 10, fill, 22, 6); c.fill();
+    // Name
+    c.fillStyle = '#fde68a'; c.font = 'bold 11px monospace'; c.textAlign = 'left';
+    c.fillText('IZUKU MIDORIYA', 64, 24);
+
+    // HP bar
+    c.fillStyle = '#111'; c.fillRect(64, 28, 155, 12);
+    const hpFill = (this.playerHP / 3) * 155;
+    const hpGrad = c.createLinearGradient(64, 0, 219, 0);
+    hpGrad.addColorStop(0, '#4ade80'); hpGrad.addColorStop(1, '#22c55e');
+    c.fillStyle = hpGrad; c.fillRect(64, 28, hpFill, 12);
+    c.strokeStyle = '#4ade80'; c.lineWidth = 1; c.strokeRect(64, 28, 155, 12);
+
+    // Lives
+    c.fillStyle = '#fff'; c.font = 'bold 12px monospace';
+    c.fillText(`✕ ${String(this.playerHP).padStart(2, '0')}`, 64, 56);
+
+    // Boost %
+    const boostPct = this.boosting
+      ? Math.ceil((this.boostFrames / BOOST_DURATION) * 100)
+      : this.boostReady ? 100
+      : Math.ceil((1 - this.boostCooldown / BOOST_COOLDOWN) * 100);
+    c.fillStyle = this.boosting ? '#00e5ff' : this.boostReady ? '#4ade80' : '#888';
+    c.shadowColor = this.boosting ? '#00e5ff' : 'transparent'; c.shadowBlur = this.boosting ? 10 : 0;
+    c.fillText(`⚡ ${boostPct}%`, 110, 56);
     c.shadowBlur = 0;
-    c.fillStyle = '#fff'; c.font = 'bold 11px sans-serif'; c.textAlign = 'center';
-    c.fillText(bactive ? '⚡ BOOST!' : bready ? '⚡ SHIFT' : '⚡ cooldown', CW - 77, 25);
+
+    // ── Distance bar (top-center) ──
+    const bw = 280, bh = 20, bx2 = CW / 2 - bw / 2, by2 = 8;
+    c.fillStyle = 'rgba(0,0,0,0.75)'; c.fillRect(bx2, by2, bw, bh);
+    const prog = c.createLinearGradient(bx2, 0, bx2 + bw, 0);
+    prog.addColorStop(0, '#4ade80'); prog.addColorStop(1, '#22c55e');
+    c.fillStyle = prog;
+    c.fillRect(bx2, by2, Math.max(0, (this.km / TOTAL_KM) * bw), bh);
+    c.strokeStyle = '#4ade80'; c.lineWidth = 1; c.strokeRect(bx2, by2, bw, bh);
+    c.fillStyle = '#fff'; c.font = 'bold 11px monospace'; c.textAlign = 'center';
+    c.fillText(`${this.km.toFixed(1)} / ${TOTAL_KM} km`, CW / 2, by2 + 14);
+
+    // ── Shigaraki panel (top-right) ──
+    c.fillStyle = 'rgba(0,0,0,0.82)'; c.fillRect(CW - 226, 6, 220, 64);
+    c.strokeStyle = '#c62828'; c.lineWidth = 2; c.strokeRect(CW - 226, 6, 220, 64);
+    this.drawShigarakiPortrait(c, CW - 58, 10);
+
+    c.fillStyle = '#fde68a'; c.font = 'bold 11px monospace'; c.textAlign = 'right';
+    c.fillText('TOMURA SHIGARAKI', CW - 64, 24);
+
+    const shigHPBar = 220 - 64 - 10;
+    c.fillStyle = '#111'; c.fillRect(CW - 226 + 10, 28, shigHPBar, 12);
+    const shigFill = ((this.shigX - this.dekuX) < PUNCH_RANGE && this.boosting) ? shigHPBar * 0.6 : shigHPBar;
+    const shigGrad = c.createLinearGradient(CW - 216, 0, CW - 216 + shigHPBar, 0);
+    shigGrad.addColorStop(0, '#ef4444'); shigGrad.addColorStop(1, '#b91c1c');
+    c.fillStyle = shigGrad; c.fillRect(CW - 216, 28, shigFill, 12);
+    c.strokeStyle = '#c62828'; c.lineWidth = 1; c.strokeRect(CW - 216, 28, shigHPBar, 12);
+
+    // Biome label
+    c.fillStyle = 'rgba(0,0,0,0.7)'; c.fillRect(CW / 2 - 80, 32, 160, 22);
+    c.fillStyle = '#ccc'; c.font = 'bold 11px monospace'; c.textAlign = 'center';
+    c.fillText(this.currentBiome.label, CW / 2, 47);
 
     // Controls hint
-    c.fillStyle = 'rgba(0,0,0,0.5)'; c.beginPath(); c.roundRect(8, CH - 36, 310, 26, 6); c.fill();
-    c.fillStyle = '#ccc'; c.font = '11px sans-serif'; c.textAlign = 'left';
-    c.fillText('SPACE: jump  |  SHIFT: boost  |  Z: punch (during boost)', 14, CH - 18);
+    c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(6, CH - 28, 340, 22);
+    c.fillStyle = '#777'; c.font = '10px monospace'; c.textAlign = 'left';
+    c.fillText('SPACE: jump  SHIFT: boost  Z: punch (during boost)', 10, CH - 12);
   }
 
   private drawBossHUD(c: CanvasRenderingContext2D) {
-    // Player HP
-    c.fillStyle = 'rgba(0,0,0,0.7)'; c.beginPath(); c.roundRect(8, 8, 160, 34, 8); c.fill();
-    c.fillStyle = '#fff'; c.font = 'bold 13px sans-serif'; c.textAlign = 'left';
-    c.fillText('Deku HP:', 16, 28);
+    // Deku panel
+    c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillRect(6, 6, 220, 64);
+    c.strokeStyle = '#4ade80'; c.lineWidth = 2; c.strokeRect(6, 6, 220, 64);
+    this.drawDekuPortrait(c, 10, 10);
+    c.fillStyle = '#fde68a'; c.font = 'bold 11px monospace'; c.textAlign = 'left';
+    c.fillText('IZUKU MIDORIYA', 64, 24);
+
+    c.fillStyle = '#111'; c.fillRect(64, 28, 155, 12);
+    const hpGrad = c.createLinearGradient(64, 0, 219, 0);
+    hpGrad.addColorStop(0, '#4ade80'); hpGrad.addColorStop(1, '#22c55e');
+    c.fillStyle = hpGrad; c.fillRect(64, 28, (this.playerHP / 3) * 155, 12);
+    c.strokeStyle = '#4ade80'; c.lineWidth = 1; c.strokeRect(64, 28, 155, 12);
     for (let i = 0; i < 3; i++) {
       c.fillStyle = i < this.playerHP ? '#4ade80' : '#374151';
-      c.beginPath(); c.arc(100 + i * 22, 22, 8, 0, Math.PI * 2); c.fill();
+      c.fillRect(64 + i * 18, 44, 14, 14);
+      c.strokeStyle = '#4ade80'; c.strokeRect(64 + i * 18, 44, 14, 14);
     }
+    c.fillStyle = '#fff'; c.font = 'bold 11px monospace';
+    c.fillText('✕ ' + String(this.playerHP).padStart(2,'0'), 126, 56);
 
-    // Shigaraki HP
-    c.fillStyle = 'rgba(0,0,0,0.7)'; c.beginPath(); c.roundRect(CW - 170, 8, 162, 34, 8); c.fill();
-    c.fillStyle = '#fff'; c.font = 'bold 13px sans-serif'; c.textAlign = 'right';
-    c.fillText('Shigaraki:', CW - 70, 28);
+    // Shigaraki panel
+    c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillRect(CW - 226, 6, 220, 64);
+    c.strokeStyle = '#c62828'; c.lineWidth = 2; c.strokeRect(CW - 226, 6, 220, 64);
+    this.drawShigarakiPortrait(c, CW - 58, 10);
+    c.fillStyle = '#fde68a'; c.font = 'bold 11px monospace'; c.textAlign = 'right';
+    c.fillText('TOMURA SHIGARAKI', CW - 64, 24);
+
+    const bossW = 155;
+    c.fillStyle = '#111'; c.fillRect(CW - 216, 28, bossW, 12);
+    const bossGrad = c.createLinearGradient(CW - 216, 0, CW - 216 + bossW, 0);
+    bossGrad.addColorStop(0, '#ef4444'); bossGrad.addColorStop(1, '#b91c1c');
+    c.fillStyle = bossGrad; c.fillRect(CW - 216, 28, bossW * ((BOSS_PUNCHES - this.bossHits) / BOSS_PUNCHES), 12);
+    c.strokeStyle = '#c62828'; c.lineWidth = 1; c.strokeRect(CW - 216, 28, bossW, 12);
     for (let i = 0; i < BOSS_PUNCHES; i++) {
-      c.fillStyle = i < (BOSS_PUNCHES - this.bossHits) ? '#c62828' : '#374151';
-      c.beginPath(); c.arc(CW - 50 + i * 22, 22, 8, 0, Math.PI * 2); c.fill();
+      c.fillStyle = i < (BOSS_PUNCHES - this.bossHits) ? '#ef4444' : '#374151';
+      c.fillRect(CW - 216 + i * 18, 44, 14, 14);
+      c.strokeStyle = '#c62828'; c.strokeRect(CW - 216 + i * 18, 44, 14, 14);
     }
 
-    // Instruction
-    c.fillStyle = 'rgba(0,0,0,0.6)'; c.beginPath(); c.roundRect(CW / 2 - 140, CH - 36, 280, 26, 6); c.fill();
-    c.fillStyle = '#4ade80'; c.font = 'bold 12px sans-serif'; c.textAlign = 'center';
-    c.fillText('🥊 Press Z to PUNCH Shigaraki! (3 hits wins)', CW / 2, CH - 18);
+    // Boss instruction
+    c.fillStyle = 'rgba(0,0,0,0.75)'; c.fillRect(CW / 2 - 160, CH - 36, 320, 28);
+    c.strokeStyle = '#4ade80'; c.lineWidth = 1; c.strokeRect(CW / 2 - 160, CH - 36, 320, 28);
+    c.fillStyle = '#4ade80'; c.font = 'bold 13px monospace'; c.textAlign = 'center';
+    c.fillText('[ Z ] PUNCH  ·  Land 3 hits to win!', CW / 2, CH - 17);
 
+    // Attack warning flash
     if (this.bossState === 'attack') {
-      c.fillStyle = 'rgba(124,58,237,0.35)'; c.fillRect(0, 0, CW, CH);
-      c.fillStyle = '#fff'; c.font = 'bold 26px sans-serif'; c.textAlign = 'center';
-      c.shadowColor = '#7c3aed'; c.shadowBlur = 20;
-      c.fillText('DECAY ATTACK!', CW / 2, CH / 2 - 20);
+      c.fillStyle = 'rgba(124,58,237,0.28)'; c.fillRect(0, 0, CW, CH);
+      c.shadowColor = '#7c3aed'; c.shadowBlur = 30;
+      c.fillStyle = '#ffffff'; c.font = 'bold 28px monospace'; c.textAlign = 'center';
+      c.fillText('DECAY ATTACK!', CW / 2, CH / 2 - 10);
+      c.shadowBlur = 0;
+    }
+
+    // Stagger hit confirm
+    if (this.bossState === 'stagger') {
+      c.shadowColor = '#4ade80'; c.shadowBlur = 20;
+      c.fillStyle = '#4ade80'; c.font = 'bold 24px monospace'; c.textAlign = 'center';
+      c.fillText('HIT!', CW / 2, CH / 2 - 10);
       c.shadowBlur = 0;
     }
   }
 
-  // ── Screens ───────────────────────────────────────────────────────────────
+  // ── Character portrait thumbnails ─────────────────────────────────────────
+
+  private drawDekuPortrait(c: CanvasRenderingContext2D, px: number, py: number) {
+    const p = 2; // portrait pixel size
+    const r = (col: number, row: number, w: number, h: number, color: string) => {
+      c.fillStyle = color; c.fillRect(px + col * p, py + row * p, w * p, h * p);
+    };
+    // Hair
+    r(2,  0, 16,  3, '#1b5e20');
+    r(4,  2, 12,  4, '#2e7d32');
+    // Face
+    r(4,  6, 12,  8, '#fde68a');
+    // Eyes
+    r(5,  7,  3,  4, '#ffffff'); r(6,  8,  1,  2, '#1565c0');
+    r(12, 7,  3,  4, '#ffffff'); r(13, 8,  1,  2, '#1565c0');
+    // Suit
+    r(3, 14, 14,  8, '#2e7d32');
+    r(9, 15,  2,  6, '#ffffff'); r(5, 18,  10, 2, '#ffffff');
+  }
+
+  private drawShigarakiPortrait(c: CanvasRenderingContext2D, px: number, py: number) {
+    const p = 2;
+    const r = (col: number, row: number, w: number, h: number, color: string) => {
+      c.fillStyle = color; c.fillRect(px + col * p, py + row * p, w * p, h * p);
+    };
+    // Hair
+    r(1,  0, 18,  3, '#b0bec5');
+    r(3,  2, 14,  4, '#cfd8dc');
+    // Face
+    r(3,  6, 14,  8, '#c5b8b0');
+    // Eyes
+    r(4,  7,  3,  4, '#ffffff'); r(5,  8,  1,  2, '#b71c1c');
+    r(13, 7,  3,  4, '#ffffff'); r(14, 8,  1,  2, '#b71c1c');
+    // Coat
+    r(2, 14, 16,  8, '#1a237e');
+  }
+
+  // ── Title / End screens ───────────────────────────────────────────────────
 
   private drawStart(c: CanvasRenderingContext2D) {
-    // Anime-style title screen
-    const g = c.createLinearGradient(0, 0, 0, CH);
-    g.addColorStop(0, '#0d47a1'); g.addColorStop(1, '#1b5e20');
-    c.fillStyle = g; c.fillRect(0, 0, CW, CH);
+    // Dark sky
+    const sky = c.createLinearGradient(0, 0, 0, CH);
+    sky.addColorStop(0, '#060610'); sky.addColorStop(1, '#0e0e20');
+    c.fillStyle = sky; c.fillRect(0, 0, CW, CH);
 
-    // Stars
-    for (let i = 0; i < 60; i++) {
-      const sx = (i * 137) % CW, sy = (i * 97) % (CH / 2);
-      c.fillStyle = `rgba(255,255,255,${0.4 + (i % 3) * 0.2})`;
-      c.beginPath(); c.arc(sx, sy, 1 + (i % 2), 0, Math.PI * 2); c.fill();
+    // Background silhouette buildings
+    this.drawBuildingLayer(c, 0,   '#0e0e1e', '#080814', 80, 240, 40, 80);
+    this.drawBuildingLayer(c, 200, '#0e0e1e', '#080814', 80, 240, 40, 80);
+
+    // Ground bricks (static)
+    const BW = 46, BH = 18;
+    for (let row = 0; row <= 3; row++) {
+      for (let col = -1; col <= Math.ceil(CW / BW) + 1; col++) {
+        const bxp = col * BW + (row % 2) * (BW / 2);
+        const byp = CH - 80 + row * BH;
+        c.fillStyle = '#252530'; c.fillRect(bxp + 1, byp + 1, BW - 2, BH - 2);
+        c.fillStyle = '#2e2e3a'; c.fillRect(bxp + 1, byp + 1, BW - 2, 2);
+      }
     }
 
+    // Characters on the start screen
+    this.drawDekuSprite(c, 250, CH - 80);
+    this.drawShigarakiSprite(c, 550, CH - 80);
+
     // Title panel
-    c.fillStyle = 'rgba(0,0,0,0.7)';
-    c.beginPath(); c.roundRect(CW / 2 - 280, 60, 560, 300, 20); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.85)';
+    c.fillRect(CW / 2 - 270, 30, 540, 200);
     c.strokeStyle = '#4ade80'; c.lineWidth = 3;
-    c.beginPath(); c.roundRect(CW / 2 - 280, 60, 560, 300, 20); c.stroke();
+    c.strokeRect(CW / 2 - 270, 30, 540, 200);
 
-    c.textAlign = 'center';
-
-    // 日本 kanji decoration
-    c.fillStyle = 'rgba(74,222,128,0.2)'; c.font = 'bold 120px sans-serif';
-    c.fillText('日本', CW / 2, 220);
-
-    c.fillStyle = '#4ade80'; c.font = 'bold 36px sans-serif';
-    c.shadowColor = '#4ade80'; c.shadowBlur = 20;
-    c.fillText('DEKU: JAPAN RUN', CW / 2, 120);
+    c.shadowColor = '#4ade80'; c.shadowBlur = 25;
+    c.fillStyle = '#4ade80'; c.font = 'bold 38px monospace'; c.textAlign = 'center';
+    c.fillText('DEKU: JAPAN RUN', CW / 2, 90);
     c.shadowBlur = 0;
 
-    c.fillStyle = '#fff'; c.font = '16px sans-serif';
-    c.fillText('Chase Shigaraki across 1000 km of Japan!', CW / 2, 165);
+    c.fillStyle = '#b0bec5'; c.font = '13px monospace';
+    c.fillText('Chase Shigaraki across 1000 km of Japan!', CW / 2, 125);
 
-    c.fillStyle = '#fde68a'; c.font = '13px sans-serif';
-    c.fillText('SPACE: jump  |  SHIFT: speed boost  |  Z: punch (during boost or boss fight)', CW / 2, 200);
-    c.fillText('Reach 1000 km → Boss fight → Land 3 punches to win!', CW / 2, 225);
+    c.fillStyle = '#fde68a'; c.font = '12px monospace';
+    c.fillText('SPACE: jump  |  SHIFT: speed boost  |  Z: punch', CW / 2, 155);
+    c.fillText('Reach 1000 km  →  Boss Fight  →  Land 3 punches!', CW / 2, 178);
 
-    c.fillStyle = '#4ade80'; c.font = 'bold 18px sans-serif';
-    c.shadowColor = '#4ade80'; c.shadowBlur = 15;
     const blink = Math.floor(Date.now() / 500) % 2 === 0;
-    if (blink) c.fillText('▶  Press SPACE or ENTER to Start', CW / 2, 310);
-    c.shadowBlur = 0;
+    if (blink) {
+      c.shadowColor = '#4ade80'; c.shadowBlur = 12;
+      c.fillStyle = '#4ade80'; c.font = 'bold 16px monospace';
+      c.fillText('▶  PRESS  SPACE  TO  START', CW / 2, 215);
+      c.shadowBlur = 0;
+    }
   }
 
-  private drawWin(c: CanvasRenderingContext2D) {
-    const g = c.createLinearGradient(0, 0, 0, CH);
-    g.addColorStop(0, '#1b5e20'); g.addColorStop(1, '#4caf50');
-    c.fillStyle = g; c.fillRect(0, 0, CW, CH);
+  private drawEndScreen(c: CanvasRenderingContext2D, win: boolean) {
+    const sky = c.createLinearGradient(0, 0, 0, CH);
+    sky.addColorStop(0, win ? '#061206' : '#120006');
+    sky.addColorStop(1, win ? '#0a200a' : '#200010');
+    c.fillStyle = sky; c.fillRect(0, 0, CW, CH);
+    this.drawBuildingLayer(c, 0, '#0e0e1e', '#080814', 80, 240, 40, 80);
 
-    c.fillStyle = 'rgba(0,0,0,0.6)';
-    c.beginPath(); c.roundRect(CW / 2 - 220, CH / 2 - 110, 440, 220, 16); c.fill();
-    c.strokeStyle = '#4ade80'; c.lineWidth = 3;
-    c.beginPath(); c.roundRect(CW / 2 - 220, CH / 2 - 110, 440, 220, 16); c.stroke();
+    c.fillStyle = 'rgba(0,0,0,0.88)';
+    c.fillRect(CW / 2 - 240, CH / 2 - 100, 480, 200);
+    c.strokeStyle = win ? '#4ade80' : '#7c3aed'; c.lineWidth = 3;
+    c.strokeRect(CW / 2 - 240, CH / 2 - 100, 480, 200);
 
-    c.textAlign = 'center';
-    c.fillStyle = '#4ade80'; c.font = 'bold 44px sans-serif';
-    c.shadowColor = '#4ade80'; c.shadowBlur = 30;
-    c.fillText('PLUS ULTRA!', CW / 2, CH / 2 - 50);
+    c.shadowColor = win ? '#4ade80' : '#f87171'; c.shadowBlur = 30;
+    c.fillStyle = win ? '#4ade80' : '#f87171'; c.font = 'bold 42px monospace'; c.textAlign = 'center';
+    c.fillText(win ? 'PLUS ULTRA!' : 'KNOCKED OUT', CW / 2, CH / 2 - 40);
     c.shadowBlur = 0;
 
-    c.fillStyle = '#fff'; c.font = '22px sans-serif';
-    c.fillText('You defeated Tomura Shigaraki!', CW / 2, CH / 2);
-    c.fillStyle = '#fde68a'; c.font = '16px sans-serif';
-    c.fillText(`Deku ran all 1000 km of Japan!`, CW / 2, CH / 2 + 35);
+    c.fillStyle = '#ffffff'; c.font = '18px monospace';
+    c.fillText(win ? 'Shigaraki has been defeated!' : 'Decay was too powerful...', CW / 2, CH / 2 + 5);
+    c.fillStyle = '#b0bec5'; c.font = '13px monospace';
+    c.fillText(win ? 'You ran 1000 km across Japan!' : 'Train harder and try again!', CW / 2, CH / 2 + 35);
 
-    const blink = Math.floor(Date.now() / 600) % 2 === 0;
-    if (blink) { c.fillStyle = '#4ade80'; c.font = 'bold 16px sans-serif'; c.fillText('SPACE / ENTER to play again', CW / 2, CH / 2 + 75); }
-  }
-
-  private drawLose(c: CanvasRenderingContext2D) {
-    const g = c.createLinearGradient(0, 0, 0, CH);
-    g.addColorStop(0, '#7f0000'); g.addColorStop(1, '#1a1a2e');
-    c.fillStyle = g; c.fillRect(0, 0, CW, CH);
-
-    c.fillStyle = 'rgba(0,0,0,0.6)';
-    c.beginPath(); c.roundRect(CW / 2 - 220, CH / 2 - 110, 440, 220, 16); c.fill();
-    c.strokeStyle = '#7c3aed'; c.lineWidth = 3;
-    c.beginPath(); c.roundRect(CW / 2 - 220, CH / 2 - 110, 440, 220, 16); c.stroke();
-
-    c.textAlign = 'center';
-    c.fillStyle = '#f87171'; c.font = 'bold 40px sans-serif';
-    c.shadowColor = '#f87171'; c.shadowBlur = 25;
-    c.fillText('KNOCKED OUT...', CW / 2, CH / 2 - 50);
-    c.shadowBlur = 0;
-
-    c.fillStyle = '#fff'; c.font = '20px sans-serif';
-    c.fillText('Shigaraki\'s decay was too strong!', CW / 2, CH / 2);
-    c.fillStyle = '#d1d5db'; c.font = '15px sans-serif';
-    c.fillText('Train harder and try again, Deku!', CW / 2, CH / 2 + 35);
-
-    const blink = Math.floor(Date.now() / 600) % 2 === 0;
-    if (blink) { c.fillStyle = '#f87171'; c.font = 'bold 16px sans-serif'; c.fillText('SPACE / ENTER to try again', CW / 2, CH / 2 + 75); }
+    const blink = Math.floor(Date.now() / 550) % 2 === 0;
+    if (blink) {
+      c.fillStyle = win ? '#4ade80' : '#f87171'; c.font = 'bold 14px monospace';
+      c.fillText('SPACE  /  ENTER  to play again', CW / 2, CH / 2 + 78);
+    }
   }
 }
