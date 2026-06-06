@@ -512,139 +512,171 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  // ── Two-pass sprite renderer (outlines then fills) ───────────────────────
+
+  private renderSprite(
+    c: CanvasRenderingContext2D,
+    draws: [number, number, number, number, string][],
+    bx: number, by: number, ps: number, flipW = 0
+  ) {
+    c.fillStyle = '#000';
+    for (const [col, row, w, h] of draws) {
+      const dc = flipW ? flipW - col - w : col;
+      c.fillRect(bx + dc * ps - 1, by + row * ps - 1, w * ps + 2, h * ps + 2);
+    }
+    for (const [col, row, w, h, color] of draws) {
+      const dc = flipW ? flipW - col - w : col;
+      c.fillStyle = color;
+      c.fillRect(bx + dc * ps, by + row * ps, w * ps, h * ps);
+    }
+  }
+
   // ── Deku pixel-art sprite ─────────────────────────────────────────────────
 
   private drawDekuSprite(c: CanvasRenderingContext2D, x: number, y: number) {
     const ps = PS;
-    // Sprite: 16 art-px wide × 29 art-px tall; feet at (x, y)
-    const bx = Math.round(x - 8 * ps);
-    const by = Math.round(y - 29 * ps);
+    // Sprite 20 art-px wide; shoes bottom at row 35 → by = y - 35*ps
+    const bx = Math.round(x - 10 * ps);
+    const by = Math.round(y - 35 * ps);
+    const draws: [number, number, number, number, string][] = [];
+    const r = (col: number, row: number, w: number, h: number, color: string) => draws.push([col, row, w, h, color]);
 
-    const r = (col: number, row: number, w: number, h: number, color: string) => {
-      c.fillStyle = color;
-      c.fillRect(bx + col * ps, by + row * ps, w * ps, h * ps);
-    };
-
+    const runF = Math.floor(this.animT * 0.16) % 4; // 4-frame cycle
+    const lSwing = [2, 1, -2, -1][runF];             // left-leg forward offset
     const hitFlash = this.playerHitTimer > 0 && Math.floor(this.playerHitTimer / 5) % 2 === 0;
-    if (hitFlash) { c.save(); c.globalAlpha = 0.3; }
 
-    // Green lightning aura when boosting
+    // ── HAIR ──
+    // Far spiky tips
+    r(5,  -4, 2, 3, '#1b5e20');
+    r(9,  -4, 2, 3, '#2e7d32');
+    r(13, -4, 2, 3, '#1b5e20');
+    r(3,  -3, 3, 2, '#1b5e20');
+    r(15, -3, 2, 2, '#1b5e20');
+    // Main hair mass
+    r(1,  -2, 18, 1, '#1b5e20');
+    r(0,  -1, 20, 4, '#1b5e20');
+    r(2,  -1, 16, 4, '#2e7d32');
+    r(5,  -1,  2, 2, '#4caf50');  // highlight streaks
+    r(10, -1,  3, 2, '#388e3c');
+    r(15,  0,  2, 1, '#4caf50');
+    // Side hair hanging past face
+    r(0,   3,  3, 5, '#1b5e20');
+    r(17,  3,  3, 5, '#1b5e20');
+    r(1,   4,  2, 3, '#2e7d32');
+    r(17,  4,  2, 3, '#2e7d32');
+
+    // ── FACE ──
+    r(2,   3, 16,  9, '#fde68a');  // skin
+    r(3,  11,  14, 1, '#d4a020');  // chin line
+    // Side shadows
+    r(2,   3,  1,  8, '#e0c050');
+    r(17,  3,  1,  8, '#e0c050');
+
+    // Eyebrows (dark green — Deku's stern brow)
+    r(3,  4,  5, 1, '#1b5e20');
+    r(12, 4,  5, 1, '#1b5e20');
+
+    // LEFT EYE (5×5 art-px, large anime style)
+    r(3,  5,  5, 6, '#ffffff');    // whites
+    r(4,  6,  3, 4, '#1565c0');    // iris blue
+    r(5,  7,  1, 2, '#0a2a70');    // pupil
+    r(3,  5,  2, 1, '#c0daff');    // top shine
+    r(3,  5,  1, 2, '#ddeeff');    // left shine
+    r(3, 10,  5, 1, '#111111');    // lower lash
+    r(3,  4,  5, 2, '#111111');    // upper lash / lid
+
+    // RIGHT EYE
+    r(12, 5,  5, 6, '#ffffff');
+    r(13, 6,  3, 4, '#1565c0');
+    r(14, 7,  1, 2, '#0a2a70');
+    r(12, 5,  2, 1, '#c0daff');
+    r(12, 5,  1, 2, '#ddeeff');
+    r(12,10,  5, 1, '#111111');
+    r(12, 4,  5, 2, '#111111');
+
+    // Nose
+    r(9,  10, 2, 1, '#d0a020');
+    // Freckles (Deku's iconic 3-dot cheek freckles)
+    r(3,  10, 1, 1, '#e09838'); r(5,  10, 1, 1, '#e09838'); r(7,  10, 1, 1, '#e09838');
+    r(13, 10, 1, 1, '#e09838'); r(15, 10, 1, 1, '#e09838'); r(17, 10, 1, 1, '#e09838');
+
+    // ── NECK ──
+    r(7,  12, 5, 2, '#fde68a');
+
+    // ── TORSO (green hero suit) ──
+    r(3,  14, 14, 10, '#2e7d32');
+    r(3,  14,  1,  9, '#1b5e20');   // left shade
+    r(16, 14,  1,  9, '#1b5e20');   // right shade
+    r(3,  23, 14,  1, '#0f2010');   // belt top
+    // White reinforcement cross (One For All symbol)
+    r(9,  15,  2,  8, '#f8f8f8');   // vertical
+    r(5,  19,  10, 2, '#f8f8f8');   // horizontal
+    // Belt
+    r(3,  23, 14,  2, '#111a11');
+    r(8,  23,  4,  2, '#888800');   // buckle
+
+    // ── LEFT ARM (back, bent slightly back) ──
+    r(-4, 14,  5,  8, '#2e7d32');
+    r(-4, 21,  5,  2, '#d4c898');   // bandage wrap
+    r(-4, 22,  5,  1, '#b8a870');
+    r(-4, 23,  5,  1, '#d4c898');
+    // Left fist (white glove)
+    r(-5, 24,  7,  4, '#e8e8e0');
+    r(-5, 27,  7,  1, '#c8c8b8');
+
+    // ── RIGHT ARM (front, extended) ──
+    r(19, 13,  5,  8, '#2e7d32');
+    r(19, 20,  5,  2, '#d4c898');
+    r(19, 21,  5,  1, '#b8a870');
+    r(19, 22,  5,  1, '#d4c898');
+    // Right fist (reaching forward)
+    r(19, 23,  7,  4, '#e8e8e0');
+    r(19, 26,  7,  1, '#c8c8b8');
+
+    // ── LEGS ──
+    r(5,  25, 9,  2, '#1b5e20');    // hip connector
+
+    // Left thigh + shin (swing forward)
+    r(3  + lSwing, 27, 5, 5, '#1b5e20');
+    r(4  + lSwing, 31, 4, 3, '#145214');
+    // Left shoe
+    r(2  + lSwing, 33, 6, 1, '#c62828');
+    r(1  + lSwing, 34, 7, 1, '#8b0000');
+
+    // Right thigh + shin (swing back)
+    r(12 - lSwing, 27, 5, 5, '#1b5e20');
+    r(12 - lSwing, 31, 4, 3, '#145214');
+    // Right shoe
+    r(11 - lSwing, 33, 6, 1, '#c62828');
+    r(10 - lSwing, 34, 7, 1, '#8b0000');
+
+    // ── RENDER ──
+    if (hitFlash) { c.save(); c.globalAlpha = 0.25; }
+
+    // Green lightning aura BEFORE rendering sprite (behind character)
     if (this.boosting) {
       c.save();
-      c.shadowColor = '#00e5ff'; c.shadowBlur = 22;
-      c.strokeStyle = '#00e5ff'; c.lineWidth = 2;
-      for (let i = 0; i < 5; i++) {
-        const lx = bx - 6 + Math.random() * (16 * ps + 12);
-        const ly = by + Math.random() * 29 * ps;
-        c.beginPath();
-        c.moveTo(lx, ly);
-        c.lineTo(lx + (Math.random() - 0.5) * 24, ly + (Math.random() - 0.5) * 24);
-        c.stroke();
+      c.strokeStyle = '#00e5ff'; c.lineWidth = 2; c.shadowColor = '#00e5ff'; c.shadowBlur = 14;
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2 + this.animT * 0.3;
+        const dist = 28 + Math.random() * 20;
+        const sx = x + Math.cos(angle) * 18, sy = y - 50 + Math.sin(angle) * 28;
+        const ex = sx + Math.cos(angle) * dist, ey = sy + Math.sin(angle) * dist;
+        const mx = (sx + ex) / 2 + (Math.random() - 0.5) * 18;
+        const my = (sy + ey) / 2 + (Math.random() - 0.5) * 18;
+        c.beginPath(); c.moveTo(sx, sy); c.lineTo(mx, my); c.lineTo(ex, ey); c.stroke();
       }
       c.restore();
     }
 
-    const runF = Math.floor(this.animT * 0.18) % 2; // 0 or 1
+    this.renderSprite(c, draws, bx, by, ps);
 
-    // ── HAIR (spiky green anime hair) ──
-    r(3,  0, 10, 1, '#0d2e0d');      // top spiky outline
-    r(2,  1, 12, 1, '#1b5e20');
-    r(1,  2, 14, 2, '#1b5e20');
-    r(3,  2, 10, 2, '#2e7d32');      // lighter inner
-    r(5,  3,  6, 1, '#388e3c');      // highlight
-    r(1,  4,  2, 1, '#1b5e20');      // left wing
-    r(13, 4,  2, 1, '#1b5e20');      // right wing
-
-    // ── FACE ──
-    r(2,  4, 12, 6, '#fde68a');      // skin
-    r(2,  4,  1, 5, '#1a1a1a');      // left outline
-    r(13, 4,  1, 5, '#1a1a1a');      // right outline
-    r(2,  9, 12, 1, '#d4a827');      // chin shadow
-
-    // Left eye (large anime)
-    r(3, 5, 4, 4, '#ffffff');
-    r(4, 6, 2, 2, '#1565c0');
-    r(4, 7, 1, 1, '#0a2a6e');
-    r(3, 5, 1, 1, '#b0c8ff');        // shine
-    r(3, 8, 4, 1, '#000000');        // lash
-    r(3, 5, 4, 1, '#1a1a1a');        // top lash
-
-    // Right eye
-    r(9, 5, 4, 4, '#ffffff');
-    r(10, 6, 2, 2, '#1565c0');
-    r(10, 7, 1, 1, '#0a2a6e');
-    r(9, 5,  1, 1, '#b0c8ff');
-    r(9, 8,  4, 1, '#000000');
-    r(9, 5,  4, 1, '#1a1a1a');
-
-    // Cheek freckles (Deku's freckles)
-    r(3,  8, 1, 1, '#e89020');
-    r(12, 8, 1, 1, '#e89020');
-    // Nose
-    r(7,  8, 2, 1, '#d4a020');
-
-    // ── NECK ──
-    r(6, 10, 4, 1, '#fde68a');
-
-    // ── TORSO (green hero suit) ──
-    r(2, 11, 12, 8, '#2e7d32');
-    r(2, 11,  1, 7, '#1b5e20');      // left edge
-    r(13,11,  1, 7, '#1b5e20');      // right edge
-    r(2, 18, 12, 1, '#1b5e20');      // bottom
-    // White cross reinforcement
-    r(7, 12, 2, 6, '#f0f0f0');       // vertical
-    r(4, 15, 8, 2, '#f0f0f0');       // horizontal
-    // Belt
-    r(2, 19, 12, 2, '#111a11');
-
-    // ── ARMS ──
-    // Back arm (left side of screen)
-    r(-2, 12, 3, 6, '#2e7d32');
-    r(-2, 16, 3, 2, '#c8a878');      // bandage
-    r(-2, 17, 3, 1, '#a08050');
-    // Back fist
-    r(-3, 18, 5, 3, '#e8e8e8');
-    r(-3, 20, 5, 1, '#c0c0c0');
-
-    // Front arm (right side)
-    r(15, 11, 3, 6, '#2e7d32');
-    r(15, 15, 3, 2, '#c8a878');
-    r(15, 16, 3, 1, '#a08050');
-    // Front fist (extended forward)
-    r(15, 17, 5, 3, '#e8e8e8');
-    r(15, 19, 5, 1, '#c0c0c0');
-    // Green glow on fists when boosting
+    // Speed lines behind Deku when boosting
     if (this.boosting) {
-      c.save(); c.shadowColor = '#00e5ff'; c.shadowBlur = 14;
-      c.fillStyle = 'rgba(0,229,255,0.4)';
-      c.fillRect(bx + 15 * ps, by + 17 * ps, 5 * ps, 3 * ps);
-      c.fillRect(bx + (-3) * ps, by + 18 * ps, 5 * ps, 3 * ps);
-      c.restore();
-    }
-
-    // ── LEGS (run animation) ──
-    const lOff = runF === 0 ? -1 : 1;
-
-    // Left leg
-    r(2,         21, 4, 4, '#1b5e20');
-    r(2 + lOff,  24, 3, 3, '#145214');
-    // Left shoe (red)
-    r(1 + lOff,  27, 5, 1, '#c62828');
-    r(0 + lOff,  28, 6, 1, '#8b0000');
-
-    // Right leg
-    r(10,        21, 4, 4, '#1b5e20');
-    r(10 - lOff, 24, 3, 3, '#145214');
-    // Right shoe
-    r(9  - lOff, 27, 5, 1, '#c62828');
-    r(8  - lOff, 28, 6, 1, '#8b0000');
-
-    // Speed lines (horizontal streaks left of Deku when boosting)
-    if (this.boosting) {
-      c.save(); c.strokeStyle = 'rgba(0,229,255,0.55)'; c.lineWidth = 2;
-      for (let i = 0; i < 5; i++) {
-        const ly = by + (5 + i * 14) * ps / 2;
-        const len = 20 + Math.random() * 40;
+      c.save(); c.strokeStyle = 'rgba(0,229,255,0.6)'; c.lineWidth = 2;
+      for (let i = 0; i < 6; i++) {
+        const ly = by + (8 + i * 9) * ps;
+        const len = 30 + Math.random() * 55;
         c.beginPath(); c.moveTo(bx - 4, ly); c.lineTo(bx - 4 - len, ly); c.stroke();
       }
       c.restore();
@@ -657,127 +689,151 @@ export class JapanRunComponent implements AfterViewInit, OnDestroy {
 
   private drawShigarakiSprite(c: CanvasRenderingContext2D, x: number, y: number, flipLeft = false) {
     const ps = PS;
-    const bx = Math.round(x - 8 * ps);
-    const by = Math.round(y - 29 * ps);
-    const W  = 16; // sprite width in art px
+    // Sprite 20 art-px wide; anchor = feet (x, y); shoes bottom at row 36 → by = y - 36*ps
+    const bx = Math.round(x - 10 * ps);
+    const by = Math.round(y - 36 * ps);
+    const SW = 20; // sprite width for flip calculation
+    const draws: [number, number, number, number, string][] = [];
+    const r = (col: number, row: number, w: number, h: number, color: string) => draws.push([col, row, w, h, color]);
 
-    const r = (col: number, row: number, w: number, h: number, color: string) => {
-      c.fillStyle = color;
-      const drawCol = flipLeft ? W - col - w : col;
-      c.fillRect(bx + drawCol * ps, by + row * ps, w * ps, h * ps);
-    };
+    const stagger = this.bossState === 'stagger';
+    const attack  = this.bossState === 'attack';
+    const runF    = Math.floor(this.animT * 0.15) % 4;
+    const lSwing  = [2, 1, -2, -1][runF];
 
-    const stagger  = this.bossState === 'stagger';
-    const attack   = this.bossState === 'attack';
-    const runF     = Math.floor(this.animT * 0.17) % 2;
+    // ── HAIR (white/silver, wild spiky) ──
+    // Multiple spike clusters going in different directions
+    r(2,  -5, 3, 4, '#90a4ae');    // far-left spike
+    r(6,  -5, 2, 3, '#b0bec5');    // left-center spike
+    r(9,  -6, 3, 4, '#cfd8dc');    // top center spike (tallest)
+    r(13, -5, 3, 3, '#b0bec5');    // right-center spike
+    r(17, -4, 2, 3, '#90a4ae');    // far-right spike
+    r(0,  -3, 4, 2, '#78909c');    // left drape spike
+    r(16, -3, 4, 2, '#78909c');    // right drape spike
+    // Main hair mass
+    r(0,  -2, 20, 1, '#90a4ae');
+    r(0,  -1, 20, 4, '#b0bec5');
+    r(2,  -1, 16, 4, '#cfd8dc');
+    r(6,   0,  8, 2, '#eceff1');   // bright highlight center
+    r(10,  1,  4, 1, '#ffffff');   // brightest highlight
+    // Side drapes past face
+    r(0,   3,  3, 6, '#90a4ae');
+    r(17,  3,  3, 6, '#90a4ae');
+    r(1,   4,  2, 4, '#78909c');
+    r(17,  4,  2, 4, '#78909c');
 
-    if (stagger) { c.save(); c.globalAlpha = 0.65; }
+    // ── FACE (pale ashen skin) ──
+    r(2,   3, 16,  9, '#d7ccc8');
+    r(2,   3,  1,  8, '#bcaaa4');   // left shadow
+    r(17,  3,  1,  8, '#bcaaa4');   // right shadow
+    r(3,  11, 14,  1, '#a09090');   // chin
 
-    // Purple decay aura
-    c.save(); c.globalAlpha = 0.22;
-    c.fillStyle = '#7c3aed';
-    c.fillRect(bx - 6, by + 8 * ps, W * ps + 12, 18 * ps);
-    c.restore();
+    // No eyebrows (villain aesthetic — heavy orbital ridge instead)
+    r(3,  4,  5, 2, '#b0a0a0');
+    r(12, 4,  5, 2, '#b0a0a0');
 
-    // ── HAIR (white/light blue spiky) ──
-    r(2, 0, 12, 1, '#78909c');       // outer spikes
-    r(1, 1, 14, 2, '#b0bec5');
-    r(3, 1, 10, 3, '#cfd8dc');       // lighter
-    r(5, 2,  6, 1, '#eceff1');       // brightest highlight
-    // Extra spiky bits on top
-    r(3, 0, 2, 1, '#90a4ae');
-    r(7, 0, 2, 1, '#90a4ae');
-    r(11,0, 2, 1, '#90a4ae');
-    r(5,-1, 2, 1, '#b0bec5');
+    // LEFT EYE (red sinister, squinting)
+    r(3,  5,  5, 6, '#ffffff');
+    r(4,  6,  3, 4, '#b71c1c');    // red iris
+    r(5,  7,  1, 2, '#7f0000');    // dark pupil
+    r(3,  5,  1, 1, '#ff8888');    // evil top shine
+    r(3, 10,  5, 1, '#111111');
+    r(3,  4,  5, 2, '#111111');    // heavy brow
 
-    // ── FACE (pale/ashen) ──
-    r(2, 4, 12, 6, '#c5b8b0');
-    r(2, 4,  1, 5, '#1a1a1a');
-    r(13,4,  1, 5, '#1a1a1a');
-    r(2, 9, 12, 1, '#a09090');
+    // RIGHT EYE
+    r(12, 5,  5, 6, '#ffffff');
+    r(13, 6,  3, 4, '#b71c1c');
+    r(14, 7,  1, 2, '#7f0000');
+    r(12, 5,  1, 1, '#ff8888');
+    r(12,10,  5, 1, '#111111');
+    r(12, 4,  5, 2, '#111111');
 
-    // Left eye (villain red)
-    r(3, 5, 4, 4, '#ffffff');
-    r(4, 6, 2, 2, '#b71c1c');
-    r(4, 7, 1, 1, '#7f0000');
-    r(3, 5, 1, 1, '#ff9999');        // evil red shine
-    r(3, 8, 4, 1, '#1a1a1a');
-    r(3, 5, 4, 1, '#1a1a1a');
-
-    // Right eye
-    r(9, 5, 4, 4, '#ffffff');
-    r(10,6, 2, 2, '#b71c1c');
-    r(10,7, 1, 1, '#7f0000');
-    r(9, 5, 1, 1, '#ff9999');
-    r(9, 8, 4, 1, '#1a1a1a');
-    r(9, 5, 4, 1, '#1a1a1a');
-
-    // Hand-marks on face (Shigaraki's quirk markings)
-    c.save(); c.globalAlpha = 0.45; c.fillStyle = '#7c3aed';
-    c.fillRect(bx + 2 * ps, by + 5 * ps, ps, 4 * ps);
-    c.fillRect(bx + 13 * ps, by + 5 * ps, ps, 4 * ps);
-    c.restore();
+    // Scar lines under eyes (Shigaraki's markings from the quirk)
+    r(3,  10, 1, 2, '#9c7878'); r(5,  10, 1, 2, '#9c7878'); r(7,  10, 1, 2, '#9c7878');
+    r(13, 10, 1, 2, '#9c7878'); r(15, 10, 1, 2, '#9c7878'); r(17, 10, 1, 2, '#9c7878');
+    // Nose
+    r(9,  10, 2, 1, '#b09090');
 
     // ── NECK ──
-    r(6, 10, 4, 1, '#c5b8b0');
+    r(7,  12, 6, 2, '#d7ccc8');
 
-    // ── BODY (dark navy coat) ──
-    r(0, 11, 16, 10, '#1a237e');
-    r(0, 11,  1,  9, '#111870');     // left edge
-    r(15,11,  1,  9, '#111870');     // right edge
-    r(0, 20, 16,  1, '#111870');     // bottom
-    // Hood/collar
-    r(5, 11,  6,  2, '#283593');
-    r(6, 11,  4,  3, '#1a237e');
-    // Coat seam detail
-    r(7, 13,  2,  7, '#141d6e');
+    // ── DARK NAVY COAT ──
+    r(2,  14, 16, 11, '#1a237e');
+    r(2,  14,  1, 10, '#111870');   // left shadow
+    r(17, 14,  1, 10, '#111870');   // right shadow
+    // Hood/collar detail
+    r(6,  14,  8,  3, '#283593');
+    r(8,  14,  4,  5, '#1a237e');
+    // Coat centre seam
+    r(9,  16,  2,  8, '#0d1570');
+    // Coat bottom (tattered edge — jagged)
+    r(2,  24,  2,  2, '#0d1b6e');
+    r(5,  25,  3,  1, '#0d1b6e');
+    r(9,  24,  2,  2, '#0d1b6e');
+    r(13, 25,  3,  1, '#0d1b6e');
+    r(16, 24,  2,  2, '#0d1b6e');
 
     // ── ARMS ──
-    // Back arm (left/right depends on flipLeft)
-    r(-3, 12, 4, 7, '#1a237e');
-    r(-3, 17, 4, 4, '#0d0d0d');      // dark hand
-    // Decay glow on hand
-    c.save(); c.globalAlpha = 0.6; c.shadowColor = '#7c3aed'; c.shadowBlur = 12;
-    c.fillStyle = '#7c3aed';
-    const hcol = flipLeft ? W - (-3) - 4 : -3;
-    c.fillRect(bx + hcol * ps, by + 17 * ps, 4 * ps, ps);
-    c.restore();
+    // Back arm (left of sprite)
+    r(-5, 14,  6,  9, '#1a237e');
+    r(-5, 21,  6,  1, '#141060');
+    // Back hand (decayed dark)
+    r(-6, 22,  8,  5, '#0d0d0d');
+    r(-6, 22,  8,  1, '#7c3aed');   // decay glow stripe
 
-    // Front arm — raised when attacking
-    const frontArmRow = attack ? 9 : 12;
-    r(15, frontArmRow, 4, 7 + (12 - frontArmRow), '#1a237e');
-    r(15, frontArmRow + 6, 5, 4, '#0d0d0d');
-    c.save(); c.globalAlpha = attack ? 0.9 : 0.55; c.shadowColor = '#7c3aed'; c.shadowBlur = attack ? 24 : 10;
-    c.fillStyle = '#7c3aed';
-    const fhcol = flipLeft ? W - 15 - 5 : 15;
-    c.fillRect(bx + fhcol * ps, by + (frontArmRow + 6) * ps, 5 * ps, ps);
-    if (attack) {
-      c.globalAlpha = 0.35;
-      c.fillRect(bx + fhcol * ps - 6, by + (frontArmRow + 4) * ps, 7 * ps, 5 * ps);
-    }
-    c.restore();
+    // Front arm (raised if attacking)
+    const frontRow = attack ? 10 : 14;
+    r(19, frontRow, 6, 10 + (14 - frontRow), '#1a237e');
+    r(19, frontRow + 9, 6, 1, '#141060');
+    // Front hand
+    r(19, frontRow + 10, 8, 5, '#0d0d0d');
+    r(19, frontRow + 10, 8, 1, '#7c3aed');
 
     // ── LEGS ──
-    const lOff = runF === 0 ? -1 : 1;
+    r(6,  26,  8,  2, '#111870');   // hip
 
-    r(2,          21, 4, 4, '#141870');
-    r(2 - lOff,   24, 3, 3, '#0e1060');
-    r(1 - lOff,   27, 5, 1, '#0a0a20');
-    r(0 - lOff,   28, 6, 1, '#060610');
+    // Left leg
+    r(3  + lSwing, 28, 5, 5, '#141870');
+    r(4  + lSwing, 32, 4, 3, '#0e1060');
+    r(3  + lSwing, 34, 6, 1, '#0a0a20');
+    r(2  + lSwing, 35, 7, 1, '#060610');
 
-    r(10,         21, 4, 4, '#141870');
-    r(10 + lOff,  24, 3, 3, '#0e1060');
-    r(9  + lOff,  27, 5, 1, '#0a0a20');
-    r(8  + lOff,  28, 6, 1, '#060610');
+    // Right leg
+    r(12 - lSwing, 28, 5, 5, '#141870');
+    r(12 - lSwing, 32, 4, 3, '#0e1060');
+    r(11 - lSwing, 34, 6, 1, '#0a0a20');
+    r(10 - lSwing, 35, 7, 1, '#060610');
 
-    // Stagger effect (X marks)
+    // ── RENDER ──
+    if (stagger) { c.save(); c.globalAlpha = 0.6; }
+
+    // Purple decay aura (drawn before sprite so it appears behind)
+    c.save(); c.globalAlpha = 0.28; c.shadowColor = '#7c3aed'; c.shadowBlur = 18;
+    c.fillStyle = '#7c3aed';
+    const backHX  = flipLeft ? bx + 19 * ps : bx - 6 * ps;
+    const frontHX = flipLeft ? bx - 6 * ps  : bx + 19 * ps;
+    const frontHY = by + (frontRow + 10) * ps;
+    c.fillRect(backHX,  by + 22 * ps, 8 * ps, 5 * ps);
+    c.fillRect(frontHX, frontHY,      8 * ps, 5 * ps);
+    c.restore();
+
+    // Attack charge glow
+    if (attack) {
+      c.save(); c.globalAlpha = 0.45; c.shadowColor = '#7c3aed'; c.shadowBlur = 30;
+      c.fillStyle = '#7c3aed';
+      const ahx = flipLeft ? bx - 6 * ps : bx + 19 * ps;
+      c.beginPath(); c.arc(ahx + 4 * ps, frontHY - 4, 22, 0, Math.PI * 2); c.fill();
+      c.restore();
+    }
+
+    this.renderSprite(c, draws, bx, by, ps, flipLeft ? SW : 0);
+
+    // Stagger X effect
     if (stagger) {
       c.restore();
-      c.save(); c.strokeStyle = '#4ade80'; c.lineWidth = 3; c.globalAlpha = 0.85;
-      c.beginPath(); c.moveTo(x - 22, y - 60); c.lineTo(x + 18, y - 20); c.stroke();
-      c.beginPath(); c.moveTo(x + 18, y - 60); c.lineTo(x - 22, y - 20); c.stroke();
-      c.restore();
-    } else if (stagger) {
+      c.save(); c.strokeStyle = '#4ade80'; c.lineWidth = 3; c.globalAlpha = 0.9;
+      c.beginPath(); c.moveTo(x - 30, y - 80); c.lineTo(x + 25, y - 20); c.stroke();
+      c.beginPath(); c.moveTo(x + 25, y - 80); c.lineTo(x - 30, y - 20); c.stroke();
       c.restore();
     }
   }
