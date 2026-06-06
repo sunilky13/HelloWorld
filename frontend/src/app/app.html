@@ -13,6 +13,7 @@
       <button class="nav-btn" [class.active]="activeMenu() === 'chess'"      (click)="activeMenu.set('chess')"      title="Chess">♟️</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'mario'"      (click)="activeMenu.set('mario')"      title="Pixel Hopper">🏃</button>
       <button class="nav-btn" [class.active]="activeMenu() === 'swissrun'"  (click)="activeMenu.set('swissrun')"  title="Swiss Runner">🇨🇭</button>
+      <button class="nav-btn" [class.active]="activeMenu() === 'japanrun'" (click)="activeMenu.set('japanrun')" title="Japan Run">🇯🇵</button>
     </div>
   </nav>
 
@@ -62,6 +63,11 @@
           <div class="card" (click)="activeMenu.set('swissrun')">
             <div class="card-icon">🇨🇭</div>
             <h3>Swiss Runner</h3>
+            <button class="card-btn">Play</button>
+          </div>
+          <div class="card" (click)="activeMenu.set('japanrun')">
+            <div class="card-icon">🇯🇵</div>
+            <h3>Japan Run</h3>
             <button class="card-btn">Play</button>
           </div>
         </div>
@@ -158,6 +164,12 @@
     @if (activeMenu() === 'swissrun') {
       <div class="swissrun-page">
         <app-swiss-run></app-swiss-run>
+      </div>
+    }
+
+    @if (activeMenu() === 'japanrun') {
+      <div class="japanrun-page">
+        <app-japan-run></app-japan-run>
       </div>
     }
 

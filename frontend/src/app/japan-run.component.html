@@ -1,0 +1,19 @@
+<div class="japan-run-wrap" (click)="phase === 'start' ? startGame() : null">
+  <canvas #canvas width="800" height="450" class="game-canvas"></canvas>
+
+  @if (phase === 'run') {
+    <div class="touch-controls">
+      <button class="touch-btn jump-btn"
+        (pointerdown)="pressJump()" (pointerup)="relJump()" (pointerleave)="relJump()">↑ JUMP</button>
+      <button class="touch-btn boost-btn"
+        (pointerdown)="pressBoost()" (pointerup)="relBoost()" (pointerleave)="relBoost()">⚡ BOOST</button>
+    </div>
+  }
+
+  @if (phase === 'boss') {
+    <div class="touch-controls">
+      <button class="touch-btn punch-btn"
+        (pointerdown)="pressPunch()" (pointerup)="relPunch()" (pointerleave)="relPunch()">🥊 PUNCH</button>
+    </div>
+  }
+</div>

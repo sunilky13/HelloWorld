@@ -9,13 +9,14 @@ import { BikeRideComponent } from './bike-ride.component';
 import { ChessGameComponent } from './chess-game.component';
 import { MarioGameComponent } from './mario-game.component';
 import { SwissRunComponent } from './swiss-run.component';
+import { JapanRunComponent } from './japan-run.component';
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
-type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper' | 'everest' | 'bikeride' | 'chess' | 'mario' | 'swissrun';
+type Menu = 'home' | 'sudoku' | 'stickman' | 'cityjumper' | 'everest' | 'bikeride' | 'chess' | 'mario' | 'swissrun' | 'japanrun';
 
 @Component({
   selector: 'app-root',
-  imports: [StickmanGameComponent, CityJumperComponent, EverestClimbComponent, BikeRideComponent, ChessGameComponent, MarioGameComponent, SwissRunComponent],
+  imports: [StickmanGameComponent, CityJumperComponent, EverestClimbComponent, BikeRideComponent, ChessGameComponent, MarioGameComponent, SwissRunComponent, JapanRunComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
